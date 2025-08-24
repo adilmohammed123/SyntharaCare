@@ -57,13 +57,9 @@ const Reminders = () => {
   );
 
   // Fetch medicines for dropdown
-  const { data: medicinesData } = useQuery(
-    "medicines",
-    () => medicinesAPI.getAll(),
-    {
-      enabled: showCreateModal || showEditModal
-    }
-  );
+  useQuery("medicines", () => medicinesAPI.getAll(), {
+    enabled: showCreateModal || showEditModal
+  });
 
   // Mutations
   const createReminderMutation = useMutation(
