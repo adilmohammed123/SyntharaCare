@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { useForm } from 'react-hook-form';
-import { remindersAPI, medicinesAPI } from '../utils/api';
-import { useAuth } from '../contexts/AuthContext';
-import toast from 'react-hot-toast';
+import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "react-query";
+import { useForm } from "react-hook-form";
+import { remindersAPI, medicinesAPI } from "../utils/api";
+import { useAuth } from "../contexts/AuthContext";
+import toast from "react-hot-toast";
 import {
   Bell,
   Plus,
@@ -16,51 +16,53 @@ import {
   Trash2,
   Filter,
   Search
-} from 'lucide-react';
+} from "lucide-react";
 
 const Reminders = () => {
-  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedReminder, setSelectedReminder] = useState(null);
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const {
     register,
     handleSubmit,
     reset,
     setValue,
-    formState: { errors }} = useForm();
+    formState: { errors }
+  } = useForm();
 
   // Fetch reminders
   const { data: remindersData, isLoading: remindersLoading } = useQuery(
-    ['reminders', filterStatus, searchTerm],
-    () => remindersAPI.getAll({ 
-      status: filterStatus !== 'all' ? filterStatus : undefined,
-      search: searchTerm || undefined 
-    }),
+    ["reminders", filterStatus, searchTerm],
+    () =>
+      remindersAPI.getAll({
+        status: filterStatus !== "all" ? filterStatus : undefined,
+        search: searchTerm || undefined
+      }),
     {
-      refetchInterval: 30000, // Refetch every 30 seconds
+      refetchInterval: 30000 // Refetch every 30 seconds
     }
   );
 
   // Fetch today's reminders
   const { data: todayRemindersData } = useQuery(
-    'today-reminders',
+    "today-reminders",
     () => remindersAPI.getTodays(),
     {
-      refetchInterval: 60000, // Refetch every minute
+      refetchInterval: 60000 // Refetch every minute
     }
   );
 
   // Fetch medicines for dropdown
   const { data: medicinesData } = useQuery(
-    'medicines',
+    "medicines",
     () => medicinesAPI.getAll(),
     {
-      enabled: showCreateModal || showEditModal}
+      enabled: showCreateModal || showEditModal
+    }
   );
 
   // Mutations
@@ -68,65 +70,73 @@ const Reminders = () => {
     (data) => remindersAPI.create(data),
     {
       onSuccess: () => {
-        toast.success('Reminder created successfully!');
+        toast.success("Reminder created successfully!");
         setShowCreateModal(false);
         reset();
-        queryClient.invalidateQueries('reminders');
-        queryClient.invalidateQueries('today-reminders');
+        queryClient.invalidateQueries("reminders");
+        queryClient.invalidateQueries("today-reminders");
       },
       onError: (error) => {
-        toast.error(error.response?.data?.message || 'Failed to create reminder');
-      }}
+        toast.error(
+          error.response?.data?.message || "Failed to create reminder"
+        );
+      }
+    }
   );
 
   const updateReminderMutation = useMutation(
     ({ id, data }) => remindersAPI.update(id, data),
     {
       onSuccess: () => {
-        toast.success('Reminder updated successfully!');
+        toast.success("Reminder updated successfully!");
         setShowEditModal(false);
         setSelectedReminder(null);
         reset();
-        queryClient.invalidateQueries('reminders');
-        queryClient.invalidateQueries('today-reminders');
+        queryClient.invalidateQueries("reminders");
+        queryClient.invalidateQueries("today-reminders");
       },
       onError: (error) => {
-        toast.error(error.response?.data?.message || 'Failed to update reminder');
-      }}
+        toast.error(
+          error.response?.data?.message || "Failed to update reminder"
+        );
+      }
+    }
   );
 
   const markDoseMutation = useMutation(
     ({ id, action }) => remindersAPI.markDose(id, action),
     {
       onSuccess: () => {
-        toast.success('Dose status updated!');
-        queryClient.invalidateQueries('reminders');
-        queryClient.invalidateQueries('today-reminders');
+        toast.success("Dose status updated!");
+        queryClient.invalidateQueries("reminders");
+        queryClient.invalidateQueries("today-reminders");
       },
       onError: (error) => {
-        toast.error(error.response?.data?.message || 'Failed to update dose status');
-      }}
+        toast.error(
+          error.response?.data?.message || "Failed to update dose status"
+        );
+      }
+    }
   );
 
-  const deleteReminderMutation = useMutation(
-    (id) => remindersAPI.delete(id),
-    {
-      onSuccess: () => {
-        toast.success('Reminder deleted!');
-        queryClient.invalidateQueries('reminders');
-        queryClient.invalidateQueries('today-reminders');
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.message || 'Failed to delete reminder');
-      }}
-  );
+  const deleteReminderMutation = useMutation((id) => remindersAPI.delete(id), {
+    onSuccess: () => {
+      toast.success("Reminder deleted!");
+      queryClient.invalidateQueries("reminders");
+      queryClient.invalidateQueries("today-reminders");
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to delete reminder");
+    }
+  });
 
   const handleCreateReminder = (data) => {
     createReminderMutation.mutate({
       ...data,
-      times: data.times.split(',').map(time => time.trim()),
+      times: data.times.split(",").map((time) => time.trim()),
       startDate: data.startDate,
-      endDate: data.endDate || null});
+      endDate: data.endDate || null
+    });
   };
 
   const handleEditReminder = (data) => {
@@ -134,47 +144,59 @@ const Reminders = () => {
       id: selectedReminder._id,
       data: {
         ...data,
-        times: data.times.split(',').map(time => time.trim()),
+        times: data.times.split(",").map((time) => time.trim()),
         startDate: data.startDate,
-        endDate: data.endDate || null}
+        endDate: data.endDate || null
+      }
     });
   };
 
   const handleEditClick = (reminder) => {
     setSelectedReminder(reminder);
-    setValue('medicineName', reminder.medicineName);
-    setValue('dosage', reminder.dosage);
-    setValue('frequency', reminder.frequency);
-    setValue('times', reminder.times.join(', '));
-    setValue('startDate', reminder.startDate.split('T')[0]);
-    setValue('endDate', reminder.endDate ? reminder.endDate.split('T')[0] : '');
-    setValue('instructions', reminder.instructions);
+    setValue("medicineName", reminder.medicineName);
+    setValue("dosage", reminder.dosage);
+    setValue("frequency", reminder.frequency);
+    setValue("times", reminder.times.join(", "));
+    setValue("startDate", reminder.startDate.split("T")[0]);
+    setValue("endDate", reminder.endDate ? reminder.endDate.split("T")[0] : "");
+    setValue("instructions", reminder.instructions);
     setShowEditModal(true);
   };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'paused': return 'bg-yellow-100 text-yellow-800';
-      case 'completed': return 'bg-gray-100 text-gray-800';
-      case 'expired': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "active":
+        return "bg-green-100 text-green-800";
+      case "paused":
+        return "bg-yellow-100 text-yellow-800";
+      case "completed":
+        return "bg-gray-100 text-gray-800";
+      case "expired":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'active': return <CheckCircle className="h-4 w-4" />;
-      case 'paused': return <AlertCircle className="h-4 w-4" />;
-      case 'completed': return <CheckCircle className="h-4 w-4" />;
-      case 'expired': return <XCircle className="h-4 w-4" />;
-      default: return <Clock className="h-4 w-4" />;
+      case "active":
+        return <CheckCircle className="h-4 w-4" />;
+      case "paused":
+        return <AlertCircle className="h-4 w-4" />;
+      case "completed":
+        return <CheckCircle className="h-4 w-4" />;
+      case "expired":
+        return <XCircle className="h-4 w-4" />;
+      default:
+        return <Clock className="h-4 w-4" />;
     }
   };
 
   const isDoseOverdue = (reminder) => {
     const now = new Date();
-    const today = now.toISOString().split('T')[0];return reminder.times.some(time => {
+    const today = now.toISOString().split("T")[0];
+    return reminder.times.some((time) => {
       const reminderTime = new Date(`${today}T${time}`);
       const timeDiff = now - reminderTime;
       return timeDiff > 0 && timeDiff < 24 * 60 * 60 * 1000; // Within 24 hours
@@ -187,7 +209,9 @@ const Reminders = () => {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Medicine Reminders</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Medicine Reminders
+            </h1>
             <p className="text-gray-600 mt-2">
               Manage your medicine reminders and track your doses.
             </p>
@@ -214,30 +238,48 @@ const Reminders = () => {
               <div
                 key={reminder._id}
                 className={`bg-white rounded-lg p-4 border ${
-                  isDoseOverdue(reminder) ? 'border-red-200 bg-red-50' : 'border-blue-200'
+                  isDoseOverdue(reminder)
+                    ? "border-red-200 bg-red-50"
+                    : "border-blue-200"
                 }`}
               >
                 <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-medium text-gray-900">{reminder.medicineName}</h3>
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    isDoseOverdue(reminder) ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
-                  }`}>
-                    {isDoseOverdue(reminder) ? 'Overdue' : 'Today'}
+                  <h3 className="font-medium text-gray-900">
+                    {reminder.medicineName}
+                  </h3>
+                  <span
+                    className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                      isDoseOverdue(reminder)
+                        ? "bg-red-100 text-red-800"
+                        : "bg-blue-100 text-blue-800"
+                    }`}
+                  >
+                    {isDoseOverdue(reminder) ? "Overdue" : "Today"}
                   </span>
                 </div>
                 <p className="text-sm text-gray-600 mb-2">{reminder.dosage}</p>
                 <p className="text-sm text-gray-600 mb-3">
-                  Times: {reminder.times.join(', ')}
+                  Times: {reminder.times.join(", ")}
                 </p>
                 <div className="flex space-x-2">
                   <button
-                    onClick={() => markDoseMutation.mutate({ id: reminder._id, action: 'taken' })}
+                    onClick={() =>
+                      markDoseMutation.mutate({
+                        id: reminder._id,
+                        action: "taken"
+                      })
+                    }
                     className="flex-1 btn-primary text-sm py-1"
                   >
                     Taken
                   </button>
                   <button
-                    onClick={() => markDoseMutation.mutate({ id: reminder._id, action: 'skipped' })}
+                    onClick={() =>
+                      markDoseMutation.mutate({
+                        id: reminder._id,
+                        action: "skipped"
+                      })
+                    }
                     className="flex-1 btn-secondary text-sm py-1"
                   >
                     Skip
@@ -341,12 +383,16 @@ const Reminders = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{reminder.dosage}</div>
-                        <div className="text-sm text-gray-500">{reminder.frequency}</div>
+                        <div className="text-sm text-gray-900">
+                          {reminder.dosage}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {reminder.frequency}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {reminder.times.join(', ')}
+                          {reminder.times.join(", ")}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -354,14 +400,19 @@ const Reminders = () => {
                           {new Date(reminder.startDate).toLocaleDateString()}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {reminder.endDate 
-                            ? `to ${new Date(reminder.endDate).toLocaleDateString()}`
-                            : 'No end date'
-                          }
+                          {reminder.endDate
+                            ? `to ${new Date(
+                                reminder.endDate
+                              ).toLocaleDateString()}`
+                            : "No end date"}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(reminder.status)}`}>
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
+                            reminder.status
+                          )}`}
+                        >
                           {getStatusIcon(reminder.status)}
                           <span className="ml-1">{reminder.status}</span>
                         </span>
@@ -375,7 +426,9 @@ const Reminders = () => {
                             <Edit className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => deleteReminderMutation.mutate(reminder._id)}
+                            onClick={() =>
+                              deleteReminderMutation.mutate(reminder._id)
+                            }
                             className="text-red-600 hover:text-red-900"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -396,18 +449,27 @@ const Reminders = () => {
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div className="mt-3">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Create New Reminder</h3>
-              <form onSubmit={handleSubmit(handleCreateReminder)} className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Create New Reminder
+              </h3>
+              <form
+                onSubmit={handleSubmit(handleCreateReminder)}
+                className="space-y-4"
+              >
                 {/* Medicine Name */}
                 <div>
                   <label className="form-label">Medicine Name</label>
                   <input
-                    {...register('medicineName', { required: 'Medicine name is required' })}
+                    {...register("medicineName", {
+                      required: "Medicine name is required"
+                    })}
                     className="input-field"
                     placeholder="Enter medicine name"
                   />
                   {errors.medicineName && (
-                    <p className="mt-1 text-sm text-red-600">{errors.medicineName.message}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.medicineName.message}
+                    </p>
                   )}
                 </div>
 
@@ -415,12 +477,14 @@ const Reminders = () => {
                 <div>
                   <label className="form-label">Dosage</label>
                   <input
-                    {...register('dosage', { required: 'Dosage is required' })}
+                    {...register("dosage", { required: "Dosage is required" })}
                     className="input-field"
                     placeholder="e.g., 1 tablet, 10ml"
                   />
                   {errors.dosage && (
-                    <p className="mt-1 text-sm text-red-600">{errors.dosage.message}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.dosage.message}
+                    </p>
                   )}
                 </div>
 
@@ -428,7 +492,9 @@ const Reminders = () => {
                 <div>
                   <label className="form-label">Frequency</label>
                   <select
-                    {...register('frequency', { required: 'Frequency is required' })}
+                    {...register("frequency", {
+                      required: "Frequency is required"
+                    })}
                     className="input-field"
                   >
                     <option value="">Select frequency</option>
@@ -439,7 +505,9 @@ const Reminders = () => {
                     <option value="as needed">As needed</option>
                   </select>
                   {errors.frequency && (
-                    <p className="mt-1 text-sm text-red-600">{errors.frequency.message}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.frequency.message}
+                    </p>
                   )}
                 </div>
 
@@ -447,12 +515,14 @@ const Reminders = () => {
                 <div>
                   <label className="form-label">Times (comma-separated)</label>
                   <input
-                    {...register('times', { required: 'Times are required' })}
+                    {...register("times", { required: "Times are required" })}
                     className="input-field"
                     placeholder="e.g., 08:00, 20:00"
                   />
                   {errors.times && (
-                    <p className="mt-1 text-sm text-red-600">{errors.times.message}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.times.message}
+                    </p>
                   )}
                 </div>
 
@@ -461,11 +531,15 @@ const Reminders = () => {
                   <label className="form-label">Start Date</label>
                   <input
                     type="date"
-                    {...register('startDate', { required: 'Start date is required' })}
+                    {...register("startDate", {
+                      required: "Start date is required"
+                    })}
                     className="input-field"
                   />
                   {errors.startDate && (
-                    <p className="mt-1 text-sm text-red-600">{errors.startDate.message}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.startDate.message}
+                    </p>
                   )}
                 </div>
 
@@ -474,7 +548,7 @@ const Reminders = () => {
                   <label className="form-label">End Date (Optional)</label>
                   <input
                     type="date"
-                    {...register('endDate')}
+                    {...register("endDate")}
                     className="input-field"
                   />
                 </div>
@@ -483,7 +557,7 @@ const Reminders = () => {
                 <div>
                   <label className="form-label">Instructions (Optional)</label>
                   <textarea
-                    {...register('instructions')}
+                    {...register("instructions")}
                     rows={3}
                     className="input-field"
                     placeholder="Special instructions..."
@@ -503,7 +577,9 @@ const Reminders = () => {
                     disabled={createReminderMutation.isLoading}
                     className="btn-primary"
                   >
-                    {createReminderMutation.isLoading ? 'Creating...' : 'Create Reminder'}
+                    {createReminderMutation.isLoading
+                      ? "Creating..."
+                      : "Create Reminder"}
                   </button>
                 </div>
               </form>
@@ -517,35 +593,48 @@ const Reminders = () => {
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div className="mt-3">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Edit Reminder</h3>
-              <form onSubmit={handleSubmit(handleEditReminder)} className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Edit Reminder
+              </h3>
+              <form
+                onSubmit={handleSubmit(handleEditReminder)}
+                className="space-y-4"
+              >
                 {/* Same form fields as create modal */}
                 <div>
                   <label className="form-label">Medicine Name</label>
                   <input
-                    {...register('medicineName', { required: 'Medicine name is required' })}
+                    {...register("medicineName", {
+                      required: "Medicine name is required"
+                    })}
                     className="input-field"
                   />
                   {errors.medicineName && (
-                    <p className="mt-1 text-sm text-red-600">{errors.medicineName.message}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.medicineName.message}
+                    </p>
                   )}
                 </div>
 
                 <div>
                   <label className="form-label">Dosage</label>
                   <input
-                    {...register('dosage', { required: 'Dosage is required' })}
+                    {...register("dosage", { required: "Dosage is required" })}
                     className="input-field"
                   />
                   {errors.dosage && (
-                    <p className="mt-1 text-sm text-red-600">{errors.dosage.message}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.dosage.message}
+                    </p>
                   )}
                 </div>
 
                 <div>
                   <label className="form-label">Frequency</label>
                   <select
-                    {...register('frequency', { required: 'Frequency is required' })}
+                    {...register("frequency", {
+                      required: "Frequency is required"
+                    })}
                     className="input-field"
                   >
                     <option value="">Select frequency</option>
@@ -556,18 +645,22 @@ const Reminders = () => {
                     <option value="as needed">As needed</option>
                   </select>
                   {errors.frequency && (
-                    <p className="mt-1 text-sm text-red-600">{errors.frequency.message}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.frequency.message}
+                    </p>
                   )}
                 </div>
 
                 <div>
                   <label className="form-label">Times (comma-separated)</label>
                   <input
-                    {...register('times', { required: 'Times are required' })}
+                    {...register("times", { required: "Times are required" })}
                     className="input-field"
                   />
                   {errors.times && (
-                    <p className="mt-1 text-sm text-red-600">{errors.times.message}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.times.message}
+                    </p>
                   )}
                 </div>
 
@@ -575,11 +668,15 @@ const Reminders = () => {
                   <label className="form-label">Start Date</label>
                   <input
                     type="date"
-                    {...register('startDate', { required: 'Start date is required' })}
+                    {...register("startDate", {
+                      required: "Start date is required"
+                    })}
                     className="input-field"
                   />
                   {errors.startDate && (
-                    <p className="mt-1 text-sm text-red-600">{errors.startDate.message}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.startDate.message}
+                    </p>
                   )}
                 </div>
 
@@ -587,7 +684,7 @@ const Reminders = () => {
                   <label className="form-label">End Date (Optional)</label>
                   <input
                     type="date"
-                    {...register('endDate')}
+                    {...register("endDate")}
                     className="input-field"
                   />
                 </div>
@@ -595,7 +692,7 @@ const Reminders = () => {
                 <div>
                   <label className="form-label">Instructions (Optional)</label>
                   <textarea
-                    {...register('instructions')}
+                    {...register("instructions")}
                     rows={3}
                     className="input-field"
                   />
@@ -614,7 +711,9 @@ const Reminders = () => {
                     disabled={updateReminderMutation.isLoading}
                     className="btn-primary"
                   >
-                    {updateReminderMutation.isLoading ? 'Updating...' : 'Update Reminder'}
+                    {updateReminderMutation.isLoading
+                      ? "Updating..."
+                      : "Update Reminder"}
                   </button>
                 </div>
               </form>
