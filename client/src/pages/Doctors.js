@@ -9,13 +9,8 @@ import {
   Filter,
   Star,
   Clock,
-  MapPin,
-  Phone,
-  Mail,
   Calendar,
   Plus,
-  Edit,
-  Eye,
   X
 } from 'lucide-react';
 
@@ -67,8 +62,7 @@ const Doctors = () => {
       },
       onError: (error) => {
         toast.error(error.response?.data?.message || 'Failed to create doctor profile');
-      },
-    }
+      }}
   );
 
   const handleDoctorClick = (doctor) => {

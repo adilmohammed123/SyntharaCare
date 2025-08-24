@@ -22,15 +22,5 @@
       "src": "/(.*)",
       "dest": "/client/$1"
     }
-  ],
-  "functions": {
-    "api/index.js": {
-      "maxDuration": 30
-    }
-  },
-  "env": {
-    "MONGODB_URI": "@mongodb_uri",
-    "JWT_SECRET": "@jwt_secret",
-    "JWT_EXPIRE": "7d"
-  }
+  ]
 }

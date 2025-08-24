@@ -11,9 +11,7 @@ import {
   Calendar,
   MapPin,
   Edit,
-  Save,
   X,
-  Lock,
   Eye,
   EyeOff
 } from 'lucide-react';
@@ -32,16 +30,14 @@ const Profile = () => {
     handleSubmit,
     reset,
     setValue,
-    formState: { errors },
-  } = useForm();
+    formState: { errors }} = useForm();
 
   const {
     register: registerPassword,
     handleSubmit: handleSubmitPassword,
     reset: resetPassword,
     formState: { errors: passwordErrors },
-    watch,
-  } = useForm();
+    watch} = useForm();
 
   // Mutations
   const updateProfileMutation = useMutation(
@@ -55,8 +51,7 @@ const Profile = () => {
       },
       onError: (error) => {
         toast.error(error.response?.data?.message || 'Failed to update profile');
-      },
-    }
+      }}
   );
 
   const updatePasswordMutation = useMutation(
@@ -69,8 +64,7 @@ const Profile = () => {
       },
       onError: (error) => {
         toast.error(error.response?.data?.message || 'Failed to update password');
-      },
-    }
+      }}
   );
 
   const handleEditClick = () => {
@@ -224,7 +218,7 @@ const Profile = () => {
                 disabled={updateProfileMutation.isLoading}
                 className="btn-primary"
               >
-                {updateProfileMutation.isLoading ? 'Saving...' : 'Save Changes'}
+                {updateProfileMutation.isLoading ? 'Saving...' : 'Changes'}
               </button>
             </div>
           </form>

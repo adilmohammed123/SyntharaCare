@@ -12,13 +12,10 @@ import {
   Clock,
   User,
   Plus,
-  Search,
   Filter,
   CheckCircle,
   XCircle,
   AlertCircle,
-  Edit,
-  Trash2,
   GripVertical,
   Grid3X3,
   List
@@ -40,8 +37,7 @@ const Appointments = () => {
     register,
     handleSubmit,
     reset,
-    formState: { errors },
-  } = useForm();
+    formState: { errors }} = useForm();
 
   // Fetch appointments
   const { data: appointmentsData, isLoading: appointmentsLoading } = useQuery(
@@ -83,8 +79,7 @@ const Appointments = () => {
     ['doctor-availability', selectedDoctor, selectedDate],
     () => doctorsAPI.getAvailability(selectedDoctor, selectedDate),
     {
-      enabled: !!selectedDoctor && !!selectedDate,
-    }
+      enabled: !!selectedDoctor && !!selectedDate}
   );
 
   // Mutations
@@ -104,8 +99,7 @@ const Appointments = () => {
       onError: (error) => {
         console.error('Appointment creation failed:', error);
         toast.error(error.response?.data?.message || 'Failed to book appointment');
-      },
-    }
+      }}
   );
 
   const updateStatusMutation = useMutation(
@@ -117,8 +111,7 @@ const Appointments = () => {
       },
       onError: (error) => {
         toast.error(error.response?.data?.message || 'Failed to update status');
-      },
-    }
+      }}
   );
 
   const updateSessionPhaseMutation = useMutation(
@@ -130,8 +123,7 @@ const Appointments = () => {
       },
       onError: (error) => {
         toast.error(error.response?.data?.message || 'Failed to update session phase');
-      },
-    }
+      }}
   );
 
   const moveUpMutation = useMutation(
@@ -143,8 +135,7 @@ const Appointments = () => {
       },
       onError: (error) => {
         toast.error(error.response?.data?.message || 'Failed to move appointment');
-      },
-    }
+      }}
   );
 
   const moveDownMutation = useMutation(
@@ -156,8 +147,7 @@ const Appointments = () => {
       },
       onError: (error) => {
         toast.error(error.response?.data?.message || 'Failed to move appointment');
-      },
-    }
+      }}
   );
 
   const reorderQueueMutation = useMutation(
@@ -169,8 +159,7 @@ const Appointments = () => {
       },
       onError: (error) => {
         toast.error(error.response?.data?.message || 'Failed to reorder queue');
-      },
-    }
+      }}
   );
 
   const cancelAppointmentMutation = useMutation(
@@ -182,8 +171,7 @@ const Appointments = () => {
       },
       onError: (error) => {
         toast.error(error.response?.data?.message || 'Failed to cancel appointment');
-      },
-    }
+      }}
   );
 
   // Handle doctor selection
@@ -213,8 +201,7 @@ const Appointments = () => {
       date: selectedDate,
       time: data.time,
       symptoms: data.symptoms,
-      type: data.type,
-    };
+      type: data.type};
     
     console.log('Calling createAppointmentMutation with:', appointmentData);
     createAppointmentMutation.mutate(appointmentData);
@@ -229,12 +216,7 @@ const Appointments = () => {
       case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
-  };
-
-  const getSessionPhaseColor = (phase) => {
-    switch (phase) {
-      case 'waiting': return 'bg-gray-100 text-gray-800';
-      case 'data-collection': return 'bg-blue-100 text-blue-800';
+  };case 'data-collection': return 'bg-blue-100 text-blue-800';
       case 'initial-assessment': return 'bg-purple-100 text-purple-800';
       case 'examination': return 'bg-indigo-100 text-indigo-800';
       case 'diagnosis': return 'bg-orange-100 text-orange-800';
@@ -245,22 +227,7 @@ const Appointments = () => {
       case 'discharge': return 'bg-emerald-100 text-emerald-800';
       default: return 'bg-gray-100 text-gray-800';
     }
-  };
-
-  const getSessionPhaseDisplay = (phase) => {
-    const phaseMap = {
-      'waiting': 'Waiting',
-      'data-collection': 'Data Collection',
-      'initial-assessment': 'Initial Assessment',
-      'examination': 'Examination',
-      'diagnosis': 'Diagnosis',
-      'treatment': 'Treatment',
-      'surgery': 'Surgery',
-      'recovery': 'Recovery',
-      'follow-up': 'Follow-up',
-      'discharge': 'Discharge'
-    };
-    return phaseMap[phase] || phase;
+  };return phaseMap[phase] || phase;
   };
 
   const getStatusIcon = (status) => {

@@ -6,11 +6,9 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  DragEndEvent,
   DragOverlay,
 } from '@dnd-kit/core';
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
@@ -19,10 +17,6 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useMutation, useQueryClient } from 'react-query';
-import { appointmentsAPI } from '../utils/api';
-import { useAuth } from '../contexts/AuthContext';
-import toast from 'react-hot-toast';
 import {
   Calendar,
   Clock,
@@ -30,11 +24,6 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Edit,
-  Trash2,
-  Filter,
-  Search,
-  Plus,
   Eye,
   GripVertical
 } from 'lucide-react';
@@ -229,7 +218,6 @@ function KanbanColumn({ title, status, appointments, onStatusChange, onViewDetai
 
 // Main Kanban Board Component
 function KanbanBoard({ appointments, onViewDetails, onStatusChange }) {
-  const [activeId, setActiveId] = useState(null);
   const [activeAppointment, setActiveAppointment] = useState(null);
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -259,14 +247,12 @@ function KanbanBoard({ appointments, onViewDetails, onStatusChange }) {
 
   const handleDragStart = (event) => {
     const { active } = event;
-    setActiveId(active.id);
     const appointment = appointments.find(app => app._id === active.id);
     setActiveAppointment(appointment);
   };
 
   const handleDragEnd = (event) => {
     const { active, over } = event;
-    setActiveId(null);
     setActiveAppointment(null);
 
     if (active.id !== over?.id && over) {

@@ -8,7 +8,6 @@ import {
   Bell,
   Pill,
   TrendingUp,
-  TrendingDown,
   Users,
   Clock,
   CheckCircle,
@@ -23,32 +22,28 @@ const Dashboard = () => {
     'dashboard-appointments',
     () => appointmentsAPI.getAll({ limit: 5 }),
     {
-      refetchInterval: 30000,
-    }
+      refetchInterval: 30000}
   );
 
   const { data: diagnosesData } = useQuery(
     'dashboard-diagnoses',
     () => diagnosesAPI.getAll({ limit: 5 }),
     {
-      refetchInterval: 60000,
-    }
+      refetchInterval: 60000}
   );
 
   const { data: remindersData } = useQuery(
     'dashboard-reminders',
     () => remindersAPI.getTodays(),
     {
-      refetchInterval: 60000,
-    }
+      refetchInterval: 60000}
   );
 
   const { data: medicinesData } = useQuery(
     'dashboard-medicines',
     () => medicinesAPI.getLowStock(),
     {
-      refetchInterval: 300000,
-    }
+      refetchInterval: 300000}
   );
 
   // Fetch doctors (for doctor profile check)
@@ -57,8 +52,7 @@ const Dashboard = () => {
     () => doctorsAPI.getAll({ limit: 1 }),
     {
       refetchInterval: 300000,
-      enabled: user?.role === 'doctor',
-    }
+      enabled: user?.role === 'doctor'}
   );
 
   const getStats = () => {
@@ -85,8 +79,7 @@ const Dashboard = () => {
       completedAppointments: completedAppointments.length,
       totalDiagnoses: diagnoses.length,
       todayReminders: reminders.length,
-      lowStockMedicines: lowStockMedicines.length,
-    };
+      lowStockMedicines: lowStockMedicines.length};
   };
 
   const stats = getStats();
@@ -106,8 +99,7 @@ const Dashboard = () => {
         quickActions: [
           { name: 'Book Appointment', href: '/appointments', icon: Calendar },
           { name: 'View Diagnoses', href: '/diagnoses', icon: Stethoscope },
-          { name: 'Medicine Reminders', href: '/reminders', icon: Bell },
-        ]
+          { name: 'Medicine Reminders', href: '/reminders', icon: Bell }]
       };
     } else if (user?.role === 'doctor') {
       return {
@@ -116,8 +108,7 @@ const Dashboard = () => {
         quickActions: [
           { name: 'View Appointments', href: '/appointments', icon: Calendar },
           { name: 'Create Diagnosis', href: '/diagnoses', icon: Stethoscope },
-          { name: 'Patient Records', href: '/patients', icon: Users },
-        ]
+          { name: 'Patient Records', href: '/patients', icon: Users }]
       };
     } else {
       return {
@@ -126,8 +117,7 @@ const Dashboard = () => {
         quickActions: [
           { name: 'Manage Medicines', href: '/medicines', icon: Pill },
           { name: 'View Statistics', href: '/appointments', icon: TrendingUp },
-          { name: 'System Settings', href: '/profile', icon: AlertCircle },
-        ]
+          { name: 'System Settings', href: '/profile', icon: AlertCircle }]
       };
     }
   };

@@ -9,9 +9,7 @@ import {
   Plus,
   Search,
   Filter,
-  Calendar,
   User,
-  FileText,
   Mic,
   Play,
   Pause,
@@ -36,8 +34,7 @@ const Diagnoses = () => {
     register,
     handleSubmit,
     reset,
-    formState: { errors },
-  } = useForm();
+    formState: { errors }} = useForm();
 
   // Fetch diagnoses
   const { data: diagnosesData, isLoading: diagnosesLoading } = useQuery(
@@ -47,8 +44,7 @@ const Diagnoses = () => {
       severity: filterSeverity !== 'all' ? filterSeverity : undefined
     }),
     {
-      refetchInterval: 60000,
-    }
+      refetchInterval: 60000}
   );
 
   // Fetch appointments for creating diagnoses
@@ -56,8 +52,7 @@ const Diagnoses = () => {
     'appointments-for-diagnosis',
     () => appointmentsAPI.getAll({ status: 'completed' }),
     {
-      enabled: showCreateModal,
-    }
+      enabled: showCreateModal}
   );
 
   // Mutations
@@ -73,21 +68,12 @@ const Diagnoses = () => {
       },
       onError: (error) => {
         toast.error(error.response?.data?.message || 'Failed to create diagnosis');
-      },
-    }
-  );
-
-  const updateDiagnosisMutation = useMutation(
-    ({ id, data }) => diagnosesAPI.update(id, data),
-    {
-      onSuccess: () => {
-        toast.success('Diagnosis updated successfully!');
-        queryClient.invalidateQueries('diagnoses');
+      }}
+  );queryClient.invalidateQueries('diagnoses');
       },
       onError: (error) => {
         toast.error(error.response?.data?.message || 'Failed to update diagnosis');
-      },
-    }
+      }}
   );
 
   const handleCreateDiagnosis = (data) => {

@@ -11,19 +11,14 @@ import {
   Phone,
   Mail,
   MapPin,
-  Edit,
-  Save,
   CheckCircle,
   XCircle,
-  AlertCircle,
-  GripVertical
+  AlertCircle
 } from 'lucide-react';
 
 function AppointmentDetails({ appointment, isOpen, onClose, onStatusChange }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedAppointment, setEditedAppointment] = useState(appointment);
 
   const updateStatusMutation = useMutation(
     (data) => appointmentsAPI.updateStatus(data.id, data.status),

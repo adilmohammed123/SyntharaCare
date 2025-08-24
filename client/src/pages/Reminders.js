@@ -11,7 +11,6 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Calendar,
   Pill,
   Edit,
   Trash2,
@@ -33,8 +32,7 @@ const Reminders = () => {
     handleSubmit,
     reset,
     setValue,
-    formState: { errors },
-  } = useForm();
+    formState: { errors }} = useForm();
 
   // Fetch reminders
   const { data: remindersData, isLoading: remindersLoading } = useQuery(
@@ -62,8 +60,7 @@ const Reminders = () => {
     'medicines',
     () => medicinesAPI.getAll(),
     {
-      enabled: showCreateModal || showEditModal,
-    }
+      enabled: showCreateModal || showEditModal}
   );
 
   // Mutations
@@ -79,8 +76,7 @@ const Reminders = () => {
       },
       onError: (error) => {
         toast.error(error.response?.data?.message || 'Failed to create reminder');
-      },
-    }
+      }}
   );
 
   const updateReminderMutation = useMutation(
@@ -96,8 +92,7 @@ const Reminders = () => {
       },
       onError: (error) => {
         toast.error(error.response?.data?.message || 'Failed to update reminder');
-      },
-    }
+      }}
   );
 
   const markDoseMutation = useMutation(
@@ -110,8 +105,7 @@ const Reminders = () => {
       },
       onError: (error) => {
         toast.error(error.response?.data?.message || 'Failed to update dose status');
-      },
-    }
+      }}
   );
 
   const deleteReminderMutation = useMutation(
@@ -124,8 +118,7 @@ const Reminders = () => {
       },
       onError: (error) => {
         toast.error(error.response?.data?.message || 'Failed to delete reminder');
-      },
-    }
+      }}
   );
 
   const handleCreateReminder = (data) => {
@@ -133,8 +126,7 @@ const Reminders = () => {
       ...data,
       times: data.times.split(',').map(time => time.trim()),
       startDate: data.startDate,
-      endDate: data.endDate || null,
-    });
+      endDate: data.endDate || null});
   };
 
   const handleEditReminder = (data) => {
@@ -144,8 +136,7 @@ const Reminders = () => {
         ...data,
         times: data.times.split(',').map(time => time.trim()),
         startDate: data.startDate,
-        endDate: data.endDate || null,
-      }
+        endDate: data.endDate || null}
     });
   };
 
@@ -183,10 +174,7 @@ const Reminders = () => {
 
   const isDoseOverdue = (reminder) => {
     const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    const currentTime = now.toTimeString().split(' ')[0];
-    
-    return reminder.times.some(time => {
+    const today = now.toISOString().split('T')[0];return reminder.times.some(time => {
       const reminderTime = new Date(`${today}T${time}`);
       const timeDiff = now - reminderTime;
       return timeDiff > 0 && timeDiff < 24 * 60 * 60 * 1000; // Within 24 hours

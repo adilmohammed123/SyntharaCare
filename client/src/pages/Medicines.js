@@ -15,7 +15,6 @@ import {
   Eye,
   Package,
   DollarSign,
-  Calendar,
   X
 } from 'lucide-react';
 
@@ -34,8 +33,7 @@ const Medicines = () => {
     handleSubmit,
     reset,
     setValue,
-    formState: { errors },
-  } = useForm();
+    formState: { errors }} = useForm();
 
   // Fetch medicines
   const { data: medicinesData, isLoading: medicinesLoading } = useQuery(
@@ -45,8 +43,7 @@ const Medicines = () => {
       category: selectedCategory || undefined
     }),
     {
-      refetchInterval: 60000,
-    }
+      refetchInterval: 60000}
   );
 
   // Fetch categories
@@ -67,8 +64,7 @@ const Medicines = () => {
       },
       onError: (error) => {
         toast.error(error.response?.data?.message || 'Failed to add medicine');
-      },
-    }
+      }}
   );
 
   const updateMedicineMutation = useMutation(
@@ -83,8 +79,7 @@ const Medicines = () => {
       },
       onError: (error) => {
         toast.error(error.response?.data?.message || 'Failed to update medicine');
-      },
-    }
+      }}
   );
 
   const deleteMedicineMutation = useMutation(
@@ -96,8 +91,7 @@ const Medicines = () => {
       },
       onError: (error) => {
         toast.error(error.response?.data?.message || 'Failed to delete medicine');
-      },
-    }
+      }}
   );
 
   const handleCreateMedicine = (data) => {
@@ -105,8 +99,7 @@ const Medicines = () => {
       ...data,
       price: parseFloat(data.price),
       stockQuantity: parseInt(data.stockQuantity),
-      reorderLevel: parseInt(data.reorderLevel),
-    });
+      reorderLevel: parseInt(data.reorderLevel)});
   };
 
   const handleEditMedicine = (data) => {
@@ -116,8 +109,7 @@ const Medicines = () => {
         ...data,
         price: parseFloat(data.price),
         stockQuantity: parseInt(data.stockQuantity),
-        reorderLevel: parseInt(data.reorderLevel),
-      }
+        reorderLevel: parseInt(data.reorderLevel)}
     });
   };
 
