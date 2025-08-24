@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "react-query";
 import { useForm } from "react-hook-form";
 import { remindersAPI, medicinesAPI } from "../utils/api";
-import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";
 import {
   Bell,
