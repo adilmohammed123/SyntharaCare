@@ -69,9 +69,6 @@ const Diagnoses = () => {
       onError: (error) => {
         toast.error(error.response?.data?.message || 'Failed to create diagnosis');
         queryClient.invalidateQueries('diagnoses');
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.message || 'Failed to update diagnosis');
       }
   );
 
