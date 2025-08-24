@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { useForm } from 'react-hook-form';
-import { diagnosesAPI, appointmentsAPI } from '../utils/api';
-import { useAuth } from '../contexts/AuthContext';
-import toast from 'react-hot-toast';
+import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "react-query";
+import { useForm } from "react-hook-form";
+import { diagnosesAPI, appointmentsAPI } from "../utils/api";
+import { useAuth } from "../contexts/AuthContext";
+import toast from "react-hot-toast";
 import {
   Stethoscope,
   Plus,
@@ -17,7 +17,7 @@ import {
   Edit,
   Eye,
   X
-} from 'lucide-react';
+} from "lucide-react";
 
 const Diagnoses = () => {
   const { user } = useAuth();
@@ -25,8 +25,8 @@ const Diagnoses = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedDiagnosis, setSelectedDiagnosis] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterSeverity, setFilterSeverity] = useState('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterSeverity, setFilterSeverity] = useState("all");
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState(null);
 
@@ -34,25 +34,29 @@ const Diagnoses = () => {
     register,
     handleSubmit,
     reset,
-    formState: { errors }} = useForm();
+    formState: { errors }
+  } = useForm();
 
   // Fetch diagnoses
   const { data: diagnosesData, isLoading: diagnosesLoading } = useQuery(
-    ['diagnoses', searchTerm, filterSeverity],
-    () => diagnosesAPI.getAll({ 
-      search: searchTerm || undefined,
-      severity: filterSeverity !== 'all' ? filterSeverity : undefined
-    }),
+    ["diagnoses", searchTerm, filterSeverity],
+    () =>
+      diagnosesAPI.getAll({
+        search: searchTerm || undefined,
+        severity: filterSeverity !== "all" ? filterSeverity : undefined
+      }),
     {
-      refetchInterval: 60000}
+      refetchInterval: 60000
+    }
   );
 
   // Fetch appointments for creating diagnoses
   const { data: appointmentsData } = useQuery(
-    'appointments-for-diagnosis',
-    () => appointmentsAPI.getAll({ status: 'completed' }),
+    "appointments-for-diagnosis",
+    () => appointmentsAPI.getAll({ status: "completed" }),
     {
-      enabled: showCreateModal}
+      enabled: showCreateModal
+    }
   );
 
   // Mutations
@@ -60,27 +64,30 @@ const Diagnoses = () => {
     (data) => diagnosesAPI.create(data),
     {
       onSuccess: () => {
-        toast.success('Diagnosis created successfully!');
+        toast.success("Diagnosis created successfully!");
         setShowCreateModal(false);
         reset();
         setAudioBlob(null);
-        queryClient.invalidateQueries('diagnoses');
+        queryClient.invalidateQueries("diagnoses");
       },
       onError: (error) => {
-        toast.error(error.response?.data?.message || 'Failed to create diagnosis');
-        queryClient.invalidateQueries('diagnoses');
+        toast.error(
+          error.response?.data?.message || "Failed to create diagnosis"
+        );
+        queryClient.invalidateQueries("diagnoses");
       }
+    }
   );
 
   const handleCreateDiagnosis = (data) => {
-    console.log('Creating diagnosis with data:', data);
-    console.log('Audio blob:', audioBlob);
-    
+    console.log("Creating diagnosis with data:", data);
+    console.log("Audio blob:", audioBlob);
+
     const formData = new FormData();
-    
+
     // Add text data
-    Object.keys(data).forEach(key => {
-      if (data[key] !== undefined && data[key] !== '') {
+    Object.keys(data).forEach((key) => {
+      if (data[key] !== undefined && data[key] !== "") {
         formData.append(key, data[key]);
         console.log(`Adding ${key}:`, data[key]);
       }
@@ -88,13 +95,13 @@ const Diagnoses = () => {
 
     // Add audio file if recorded
     if (audioBlob) {
-      formData.append('voiceRecording', audioBlob, 'diagnosis-recording.webm');
-      console.log('Added voice recording to form data');
+      formData.append("voiceRecording", audioBlob, "diagnosis-recording.webm");
+      console.log("Added voice recording to form data");
     } else {
-      console.log('No voice recording to add');
+      console.log("No voice recording to add");
     }
 
-    console.log('Submitting form data...');
+    console.log("Submitting form data...");
     createDiagnosisMutation.mutate(formData);
   };
 
@@ -105,11 +112,16 @@ const Diagnoses = () => {
 
   const getSeverityColor = (severity) => {
     switch (severity) {
-      case 'low': return 'bg-green-100 text-green-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'high': return 'bg-red-100 text-red-800';
-      case 'critical': return 'bg-purple-100 text-purple-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "low":
+        return "bg-green-100 text-green-800";
+      case "medium":
+        return "bg-yellow-100 text-yellow-800";
+      case "high":
+        return "bg-red-100 text-red-800";
+      case "critical":
+        return "bg-purple-100 text-purple-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -117,7 +129,7 @@ const Diagnoses = () => {
     try {
       // Check if microphone is available
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        toast.error('Microphone not supported in this browser');
+        toast.error("Microphone not supported in this browser");
         return;
       }
 
@@ -130,7 +142,7 @@ const Diagnoses = () => {
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'audio/webm' });
+        const blob = new Blob(chunks, { type: "audio/webm" });
         setAudioBlob(blob);
       };
 
@@ -141,16 +153,18 @@ const Diagnoses = () => {
       window.currentMediaRecorder = mediaRecorder;
       window.currentStream = stream;
     } catch (error) {
-      console.error('Microphone access error:', error);
-      if (error.name === 'NotAllowedError') {
-        toast.error('Microphone access denied. Please allow microphone permissions.');
-      } else if (error.name === 'NotFoundError') {
-        toast.error('No microphone found. Please connect a microphone.');
+      console.error("Microphone access error:", error);
+      if (error.name === "NotAllowedError") {
+        toast.error(
+          "Microphone access denied. Please allow microphone permissions."
+        );
+      } else if (error.name === "NotFoundError") {
+        toast.error("No microphone found. Please connect a microphone.");
       } else {
-        toast.error('Failed to access microphone: ' + error.message);
+        toast.error("Failed to access microphone: " + error.message);
         // Provide fallback - allow diagnosis creation without voice recording
-        toast('You can still create the diagnosis without voice recording', {
-          icon: 'ℹ️',
+        toast("You can still create the diagnosis without voice recording", {
+          icon: "ℹ️",
           duration: 4000
         });
       }
@@ -160,7 +174,7 @@ const Diagnoses = () => {
   const stopRecording = () => {
     if (window.currentMediaRecorder) {
       window.currentMediaRecorder.stop();
-      window.currentStream.getTracks().forEach(track => track.stop());
+      window.currentStream.getTracks().forEach((track) => track.stop());
       setIsRecording(false);
     }
   };
@@ -181,7 +195,7 @@ const Diagnoses = () => {
               View your medical diagnoses and treatment plans.
             </p>
           </div>
-          {user?.role === 'doctor' && (
+          {user?.role === "doctor" && (
             <button
               onClick={() => setShowCreateModal(true)}
               className="btn-primary flex items-center space-x-2"
@@ -250,7 +264,7 @@ const Diagnoses = () => {
                       Date
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      {user?.role === 'patient' ? 'Doctor' : 'Patient'}
+                      {user?.role === "patient" ? "Doctor" : "Patient"}
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Symptoms
@@ -284,16 +298,14 @@ const Diagnoses = () => {
                           </div>
                           <div className="ml-3">
                             <div className="text-sm font-medium text-gray-900">
-                              {user?.role === 'patient' 
+                              {user?.role === "patient"
                                 ? `Dr. ${diagnosis.doctorId?.userId?.profile?.firstName} ${diagnosis.doctorId?.userId?.profile?.lastName}`
-                                : `${diagnosis.patientId?.profile?.firstName} ${diagnosis.patientId?.profile?.lastName}`
-                              }
+                                : `${diagnosis.patientId?.profile?.firstName} ${diagnosis.patientId?.profile?.lastName}`}
                             </div>
                             <div className="text-sm text-gray-500">
-                              {user?.role === 'patient' 
+                              {user?.role === "patient"
                                 ? diagnosis.doctorId?.specialization
-                                : diagnosis.patientId?.email
-                              }
+                                : diagnosis.patientId?.email}
                             </div>
                           </div>
                         </div>
@@ -309,7 +321,11 @@ const Diagnoses = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getSeverityColor(diagnosis.severity)}`}>
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getSeverityColor(
+                            diagnosis.severity
+                          )}`}
+                        >
                           {diagnosis.severity}
                         </span>
                       </td>
@@ -321,7 +337,7 @@ const Diagnoses = () => {
                           >
                             <Eye className="h-4 w-4" />
                           </button>
-                          {user?.role === 'doctor' && (
+                          {user?.role === "doctor" && (
                             <button
                               onClick={() => handleDetailsClick(diagnosis)}
                               className="text-green-600 hover:text-green-900"
@@ -346,7 +362,9 @@ const Diagnoses = () => {
           <div className="relative top-10 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <div className="flex justify-between items-start mb-6">
-                <h3 className="text-xl font-semibold text-gray-900">Create New Diagnosis</h3>
+                <h3 className="text-xl font-semibold text-gray-900">
+                  Create New Diagnosis
+                </h3>
                 <button
                   onClick={() => setShowCreateModal(false)}
                   className="text-gray-400 hover:text-gray-600"
@@ -355,23 +373,33 @@ const Diagnoses = () => {
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit(handleCreateDiagnosis)} className="space-y-4">
+              <form
+                onSubmit={handleSubmit(handleCreateDiagnosis)}
+                className="space-y-4"
+              >
                 {/* Appointment Selection */}
                 <div>
                   <label className="form-label">Select Appointment</label>
                   <select
-                    {...register('appointmentId', { required: 'Appointment is required' })}
+                    {...register("appointmentId", {
+                      required: "Appointment is required"
+                    })}
                     className="input-field"
                   >
                     <option value="">Choose an appointment</option>
                     {appointmentsData?.appointments?.map((appointment) => (
                       <option key={appointment._id} value={appointment._id}>
-                        {new Date(appointment.date).toLocaleDateString()} - {appointment.time} - {appointment.patientId?.profile?.firstName} {appointment.patientId?.profile?.lastName}
+                        {new Date(appointment.date).toLocaleDateString()} -{" "}
+                        {appointment.time} -{" "}
+                        {appointment.patientId?.profile?.firstName}{" "}
+                        {appointment.patientId?.profile?.lastName}
                       </option>
                     ))}
                   </select>
                   {errors.appointmentId && (
-                    <p className="mt-1 text-sm text-red-600">{errors.appointmentId.message}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.appointmentId.message}
+                    </p>
                   )}
                 </div>
 
@@ -379,13 +407,17 @@ const Diagnoses = () => {
                 <div>
                   <label className="form-label">Symptoms</label>
                   <textarea
-                    {...register('symptoms', { required: 'Symptoms are required' })}
+                    {...register("symptoms", {
+                      required: "Symptoms are required"
+                    })}
                     rows={3}
                     className="input-field"
                     placeholder="Describe the patient's symptoms..."
                   />
                   {errors.symptoms && (
-                    <p className="mt-1 text-sm text-red-600">{errors.symptoms.message}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.symptoms.message}
+                    </p>
                   )}
                 </div>
 
@@ -393,13 +425,17 @@ const Diagnoses = () => {
                 <div>
                   <label className="form-label">Diagnosis</label>
                   <textarea
-                    {...register('diagnosis', { required: 'Diagnosis is required' })}
+                    {...register("diagnosis", {
+                      required: "Diagnosis is required"
+                    })}
                     rows={3}
                     className="input-field"
                     placeholder="Enter the diagnosis..."
                   />
                   {errors.diagnosis && (
-                    <p className="mt-1 text-sm text-red-600">{errors.diagnosis.message}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.diagnosis.message}
+                    </p>
                   )}
                 </div>
 
@@ -407,7 +443,7 @@ const Diagnoses = () => {
                 <div>
                   <label className="form-label">Treatment Plan</label>
                   <textarea
-                    {...register('treatment')}
+                    {...register("treatment")}
                     rows={3}
                     className="input-field"
                     placeholder="Describe the treatment plan..."
@@ -418,7 +454,7 @@ const Diagnoses = () => {
                 <div>
                   <label className="form-label">Prescription</label>
                   <textarea
-                    {...register('prescription')}
+                    {...register("prescription")}
                     rows={3}
                     className="input-field"
                     placeholder="Enter prescription details..."
@@ -429,7 +465,7 @@ const Diagnoses = () => {
                 <div>
                   <label className="form-label">Recommendations</label>
                   <textarea
-                    {...register('recommendations')}
+                    {...register("recommendations")}
                     rows={3}
                     className="input-field"
                     placeholder="Enter recommendations..."
@@ -440,7 +476,9 @@ const Diagnoses = () => {
                 <div>
                   <label className="form-label">Severity</label>
                   <select
-                    {...register('severity', { required: 'Severity is required' })}
+                    {...register("severity", {
+                      required: "Severity is required"
+                    })}
                     className="input-field"
                   >
                     <option value="">Select severity</option>
@@ -450,24 +488,29 @@ const Diagnoses = () => {
                     <option value="critical">Critical</option>
                   </select>
                   {errors.severity && (
-                    <p className="mt-1 text-sm text-red-600">{errors.severity.message}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.severity.message}
+                    </p>
                   )}
                 </div>
 
                 {/* Voice Recording */}
                 <div>
-                  <label className="form-label">Voice Recording (Optional)</label>
+                  <label className="form-label">
+                    Voice Recording (Optional)
+                  </label>
                   <p className="text-sm text-gray-500 mb-3">
-                    You can record voice notes for the diagnosis. If microphone access fails, you can skip this step.
+                    You can record voice notes for the diagnosis. If microphone
+                    access fails, you can skip this step.
                   </p>
                   <div className="flex items-center space-x-4">
                     <button
                       type="button"
                       onClick={isRecording ? stopRecording : startRecording}
                       className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${
-                        isRecording 
-                          ? 'bg-red-500 text-white hover:bg-red-600' 
-                          : 'bg-blue-500 text-white hover:bg-blue-600'
+                        isRecording
+                          ? "bg-red-500 text-white hover:bg-red-600"
+                          : "bg-blue-500 text-white hover:bg-blue-600"
                       }`}
                     >
                       {isRecording ? (
@@ -485,7 +528,9 @@ const Diagnoses = () => {
                     {audioBlob && (
                       <button
                         type="button"
-                        onClick={() => playRecording(URL.createObjectURL(audioBlob))}
+                        onClick={() =>
+                          playRecording(URL.createObjectURL(audioBlob))
+                        }
                         className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
                       >
                         <Play className="h-4 w-4" />
@@ -502,10 +547,14 @@ const Diagnoses = () => {
                     </button>
                   </div>
                   {isRecording && (
-                    <p className="mt-2 text-sm text-red-600">Recording in progress...</p>
+                    <p className="mt-2 text-sm text-red-600">
+                      Recording in progress...
+                    </p>
                   )}
                   {audioBlob && (
-                    <p className="mt-2 text-sm text-green-600">Voice recording ready ✓</p>
+                    <p className="mt-2 text-sm text-green-600">
+                      Voice recording ready ✓
+                    </p>
                   )}
                 </div>
 
@@ -522,7 +571,9 @@ const Diagnoses = () => {
                     disabled={createDiagnosisMutation.isLoading}
                     className="btn-primary"
                   >
-                    {createDiagnosisMutation.isLoading ? 'Creating...' : 'Create Diagnosis'}
+                    {createDiagnosisMutation.isLoading
+                      ? "Creating..."
+                      : "Create Diagnosis"}
                   </button>
                 </div>
               </form>
@@ -537,7 +588,9 @@ const Diagnoses = () => {
           <div className="relative top-10 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <div className="flex justify-between items-start mb-6">
-                <h3 className="text-xl font-semibold text-gray-900">Diagnosis Details</h3>
+                <h3 className="text-xl font-semibold text-gray-900">
+                  Diagnosis Details
+                </h3>
                 <button
                   onClick={() => setShowDetailsModal(false)}
                   className="text-gray-400 hover:text-gray-600"
@@ -552,12 +605,18 @@ const Diagnoses = () => {
                   <div>
                     <h4 className="font-medium text-gray-900 mb-2">Date</h4>
                     <p className="text-gray-600">
-                      {new Date(selectedDiagnosis.createdAt).toLocaleDateString()}
+                      {new Date(
+                        selectedDiagnosis.createdAt
+                      ).toLocaleDateString()}
                     </p>
                   </div>
                   <div>
                     <h4 className="font-medium text-gray-900 mb-2">Severity</h4>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getSeverityColor(selectedDiagnosis.severity)}`}>
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getSeverityColor(
+                        selectedDiagnosis.severity
+                      )}`}
+                    >
                       {selectedDiagnosis.severity}
                     </span>
                   </div>
@@ -578,33 +637,49 @@ const Diagnoses = () => {
                 {/* Treatment */}
                 {selectedDiagnosis.treatment && (
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Treatment Plan</h4>
-                    <p className="text-gray-600">{selectedDiagnosis.treatment}</p>
+                    <h4 className="font-medium text-gray-900 mb-2">
+                      Treatment Plan
+                    </h4>
+                    <p className="text-gray-600">
+                      {selectedDiagnosis.treatment}
+                    </p>
                   </div>
                 )}
 
                 {/* Prescription */}
                 {selectedDiagnosis.prescription && (
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Prescription</h4>
+                    <h4 className="font-medium text-gray-900 mb-2">
+                      Prescription
+                    </h4>
                     {Array.isArray(selectedDiagnosis.prescription) ? (
                       <div className="space-y-3">
-                        {selectedDiagnosis.prescription.map((medicine, index) => (
-                          <div key={index} className="bg-gray-50 p-3 rounded-lg">
-                            <div className="font-medium text-gray-900">{medicine.medicineName}</div>
-                            <div className="text-sm text-gray-600">
-                              Dosage: {medicine.dosage} | Frequency: {medicine.frequency}
-                            </div>
-                            {medicine.instructions && (
-                              <div className="text-sm text-gray-600 mt-1">
-                                Instructions: {medicine.instructions}
+                        {selectedDiagnosis.prescription.map(
+                          (medicine, index) => (
+                            <div
+                              key={index}
+                              className="bg-gray-50 p-3 rounded-lg"
+                            >
+                              <div className="font-medium text-gray-900">
+                                {medicine.medicineName}
                               </div>
-                            )}
-                          </div>
-                        ))}
+                              <div className="text-sm text-gray-600">
+                                Dosage: {medicine.dosage} | Frequency:{" "}
+                                {medicine.frequency}
+                              </div>
+                              {medicine.instructions && (
+                                <div className="text-sm text-gray-600 mt-1">
+                                  Instructions: {medicine.instructions}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        )}
                       </div>
                     ) : (
-                      <p className="text-gray-600">{selectedDiagnosis.prescription}</p>
+                      <p className="text-gray-600">
+                        {selectedDiagnosis.prescription}
+                      </p>
                     )}
                   </div>
                 )}
@@ -612,18 +687,26 @@ const Diagnoses = () => {
                 {/* Recommendations */}
                 {selectedDiagnosis.recommendations && (
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Recommendations</h4>
-                    <p className="text-gray-600">{selectedDiagnosis.recommendations}</p>
+                    <h4 className="font-medium text-gray-900 mb-2">
+                      Recommendations
+                    </h4>
+                    <p className="text-gray-600">
+                      {selectedDiagnosis.recommendations}
+                    </p>
                   </div>
                 )}
 
                 {/* Voice Recording */}
                 {selectedDiagnosis.voiceRecording && (
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Voice Recording</h4>
+                    <h4 className="font-medium text-gray-900 mb-2">
+                      Voice Recording
+                    </h4>
                     <div className="flex items-center space-x-4">
                       <button
-                        onClick={() => playRecording(selectedDiagnosis.voiceRecording)}
+                        onClick={() =>
+                          playRecording(selectedDiagnosis.voiceRecording)
+                        }
                         className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
                       >
                         <Play className="h-4 w-4" />
@@ -644,9 +727,13 @@ const Diagnoses = () => {
                 {/* Follow-up Date */}
                 {selectedDiagnosis.followUpDate && (
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Follow-up Date</h4>
+                    <h4 className="font-medium text-gray-900 mb-2">
+                      Follow-up Date
+                    </h4>
                     <p className="text-gray-600">
-                      {new Date(selectedDiagnosis.followUpDate).toLocaleDateString()}
+                      {new Date(
+                        selectedDiagnosis.followUpDate
+                      ).toLocaleDateString()}
                     </p>
                   </div>
                 )}
