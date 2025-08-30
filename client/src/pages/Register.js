@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { useAuth } from '../contexts/AuthContext';
-import { Eye, EyeOff, Mail, Lock, User, Phone } from 'lucide-react';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { useAuth } from "../contexts/AuthContext";
+import { Eye, EyeOff, Mail, Lock, User, Phone } from "lucide-react";
 
 const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -14,10 +14,10 @@ const Register = () => {
     register,
     handleSubmit,
     watch,
-    formState: { errors },
+    formState: { errors }
   } = useForm();
 
-  const password = watch('password');
+  const password = watch("password");
 
   const onSubmit = async (data) => {
     setLoading(true);
@@ -31,11 +31,11 @@ const Register = () => {
           lastName: data.lastName,
           phone: data.phone,
           dateOfBirth: data.dateOfBirth,
-          gender: data.gender,
-        },
+          gender: data.gender
+        }
       };
       await registerUser(userData);
-      navigate('/');
+      navigate("/");
     } catch (error) {
       // Error is handled by the auth context
     } finally {
@@ -54,7 +54,7 @@ const Register = () => {
             Create your account
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
+            Or{" "}
             <Link
               to="/login"
               className="font-medium text-primary-600 hover:text-primary-500"
@@ -78,16 +78,18 @@ const Register = () => {
                     id="firstName"
                     type="text"
                     className={`input-field pl-10 ${
-                      errors.firstName ? 'border-red-500' : ''
+                      errors.firstName ? "border-red-500" : ""
                     }`}
                     placeholder="First name"
-                    {...register('firstName', {
-                      required: 'First name is required',
+                    {...register("firstName", {
+                      required: "First name is required"
                     })}
                   />
                 </div>
                 {errors.firstName && (
-                  <p className="mt-1 text-sm text-red-600">{errors.firstName.message}</p>
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.firstName.message}
+                  </p>
                 )}
               </div>
 
@@ -99,15 +101,17 @@ const Register = () => {
                   id="lastName"
                   type="text"
                   className={`input-field ${
-                    errors.lastName ? 'border-red-500' : ''
+                    errors.lastName ? "border-red-500" : ""
                   }`}
                   placeholder="Last name"
-                  {...register('lastName', {
-                    required: 'Last name is required',
+                  {...register("lastName", {
+                    required: "Last name is required"
                   })}
                 />
                 {errors.lastName && (
-                  <p className="mt-1 text-sm text-red-600">{errors.lastName.message}</p>
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.lastName.message}
+                  </p>
                 )}
               </div>
             </div>
@@ -125,20 +129,22 @@ const Register = () => {
                   type="email"
                   autoComplete="email"
                   className={`input-field pl-10 ${
-                    errors.email ? 'border-red-500' : ''
+                    errors.email ? "border-red-500" : ""
                   }`}
                   placeholder="Enter your email"
-                  {...register('email', {
-                    required: 'Email is required',
+                  {...register("email", {
+                    required: "Email is required",
                     pattern: {
                       value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: 'Invalid email address',
-                    },
+                      message: "Invalid email address"
+                    }
                   })}
                 />
               </div>
               {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.email.message}
+                </p>
               )}
             </div>
 
@@ -154,16 +160,18 @@ const Register = () => {
                   id="phone"
                   type="tel"
                   className={`input-field pl-10 ${
-                    errors.phone ? 'border-red-500' : ''
+                    errors.phone ? "border-red-500" : ""
                   }`}
                   placeholder="Phone number"
-                  {...register('phone', {
-                    required: 'Phone number is required',
+                  {...register("phone", {
+                    required: "Phone number is required"
                   })}
                 />
               </div>
               {errors.phone && (
-                <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.phone.message}
+                </p>
               )}
             </div>
 
@@ -176,14 +184,16 @@ const Register = () => {
                   id="dateOfBirth"
                   type="date"
                   className={`input-field ${
-                    errors.dateOfBirth ? 'border-red-500' : ''
+                    errors.dateOfBirth ? "border-red-500" : ""
                   }`}
-                  {...register('dateOfBirth', {
-                    required: 'Date of birth is required',
+                  {...register("dateOfBirth", {
+                    required: "Date of birth is required"
                   })}
                 />
                 {errors.dateOfBirth && (
-                  <p className="mt-1 text-sm text-red-600">{errors.dateOfBirth.message}</p>
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.dateOfBirth.message}
+                  </p>
                 )}
               </div>
 
@@ -194,10 +204,10 @@ const Register = () => {
                 <select
                   id="gender"
                   className={`input-field ${
-                    errors.gender ? 'border-red-500' : ''
+                    errors.gender ? "border-red-500" : ""
                   }`}
-                  {...register('gender', {
-                    required: 'Gender is required',
+                  {...register("gender", {
+                    required: "Gender is required"
                   })}
                 >
                   <option value="">Select gender</option>
@@ -206,7 +216,9 @@ const Register = () => {
                   <option value="other">Other</option>
                 </select>
                 {errors.gender && (
-                  <p className="mt-1 text-sm text-red-600">{errors.gender.message}</p>
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.gender.message}
+                  </p>
                 )}
               </div>
             </div>
@@ -217,19 +229,22 @@ const Register = () => {
               </label>
               <select
                 id="role"
-                className={`input-field ${
-                  errors.role ? 'border-red-500' : ''
-                }`}
-                {...register('role', {
-                  required: 'Role is required',
+                className={`input-field ${errors.role ? "border-red-500" : ""}`}
+                {...register("role", {
+                  required: "Role is required"
                 })}
               >
                 <option value="">Select your role</option>
                 <option value="patient">Patient</option>
                 <option value="doctor">Doctor</option>
+                <option value="organization_admin">
+                  Hospital Administrator
+                </option>
               </select>
               {errors.role && (
-                <p className="mt-1 text-sm text-red-600">{errors.role.message}</p>
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.role.message}
+                </p>
               )}
             </div>
 
@@ -243,17 +258,17 @@ const Register = () => {
                 </div>
                 <input
                   id="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   className={`input-field pl-10 pr-10 ${
-                    errors.password ? 'border-red-500' : ''
+                    errors.password ? "border-red-500" : ""
                   }`}
                   placeholder="Create a password"
-                  {...register('password', {
-                    required: 'Password is required',
+                  {...register("password", {
+                    required: "Password is required",
                     minLength: {
                       value: 6,
-                      message: 'Password must be at least 6 characters',
-                    },
+                      message: "Password must be at least 6 characters"
+                    }
                   })}
                 />
                 <button
@@ -269,7 +284,9 @@ const Register = () => {
                 </button>
               </div>
               {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.password.message}
+                </p>
               )}
             </div>
 
@@ -281,17 +298,19 @@ const Register = () => {
                 id="confirmPassword"
                 type="password"
                 className={`input-field ${
-                  errors.confirmPassword ? 'border-red-500' : ''
+                  errors.confirmPassword ? "border-red-500" : ""
                 }`}
                 placeholder="Confirm your password"
-                {...register('confirmPassword', {
-                  required: 'Please confirm your password',
+                {...register("confirmPassword", {
+                  required: "Please confirm your password",
                   validate: (value) =>
-                    value === password || 'Passwords do not match',
+                    value === password || "Passwords do not match"
                 })}
               />
               {errors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.confirmPassword.message}
+                </p>
               )}
             </div>
           </div>
@@ -305,7 +324,7 @@ const Register = () => {
               {loading ? (
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
               ) : (
-                'Create Account'
+                "Create Account"
               )}
             </button>
           </div>

@@ -1,16 +1,18 @@
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import Layout from './components/Layout';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import Appointments from './pages/Appointments';
-import Doctors from './pages/Doctors';
-import Profile from './pages/Profile';
-import Diagnoses from './pages/Diagnoses';
-import Reminders from './pages/Reminders';
-import Medicines from './pages/Medicines';
+import React from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import Layout from "./components/Layout";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Dashboard from "./pages/Dashboard";
+import Appointments from "./pages/Appointments";
+import Doctors from "./pages/Doctors";
+import Hospitals from "./pages/Hospitals";
+import Admin from "./pages/Admin";
+import Profile from "./pages/Profile";
+import Diagnoses from "./pages/Diagnoses";
+import Reminders from "./pages/Reminders";
+import Medicines from "./pages/Medicines";
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -39,6 +41,8 @@ function AppContent() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/appointments" element={<Appointments />} />
         <Route path="/doctors" element={<Doctors />} />
+        <Route path="/hospitals" element={<Hospitals />} />
+        <Route path="/admin" element={<Admin />} />
         <Route path="/diagnoses" element={<Diagnoses />} />
         <Route path="/reminders" element={<Reminders />} />
         <Route path="/medicines" element={<Medicines />} />

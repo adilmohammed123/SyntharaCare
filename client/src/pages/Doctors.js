@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { doctorsAPI } from '../utils/api';
-import { useAuth } from '../contexts/AuthContext';
-import toast from 'react-hot-toast';
+import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "react-query";
+import { doctorsAPI } from "../utils/api";
+import { useAuth } from "../contexts/AuthContext";
+import toast from "react-hot-toast";
 import {
   Users,
   Search,
@@ -12,57 +12,74 @@ import {
   Calendar,
   Plus,
   X
-} from 'lucide-react';
+} from "lucide-react";
 
 const Doctors = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedSpecialization, setSelectedSpecialization] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedSpecialization, setSelectedSpecialization] = useState("");
+  const [selectedHospital, setSelectedHospital] = useState("");
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showQuickSetupModal, setShowQuickSetupModal] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
 
   // Fetch doctors
   const { data: doctorsData, isLoading: doctorsLoading } = useQuery(
-    ['doctors', searchTerm, selectedSpecialization],
-    () => doctorsAPI.getAll({ 
-      search: searchTerm || undefined,
-      specialization: selectedSpecialization || undefined 
-    }),
+    ["doctors", searchTerm, selectedSpecialization, selectedHospital],
+    () =>
+      doctorsAPI.getAll({
+        search: searchTerm || undefined,
+        specialization: selectedSpecialization || undefined,
+        hospitalId: selectedHospital || undefined
+      }),
     {
-      refetchInterval: 60000, // Refetch every minute
+      refetchInterval: 60000 // Refetch every minute
+    }
+  );
+
+  // Fetch hospitals for filter
+  const { data: hospitalsData } = useQuery(
+    ["hospitals"],
+    () => hospitalsAPI.getAll({ limit: 100 }),
+    {
+      refetchInterval: 300000 // Refetch every 5 minutes
     }
   );
 
   // Fetch specializations
   const specializations = [
-    'Cardiology',
-    'Dermatology',
-    'Endocrinology',
-    'Gastroenterology',
-    'Neurology',
-    'Oncology',
-    'Orthopedics',
-    'Pediatrics',
-    'Psychiatry',
-    'Radiology',
-    'Surgery',
-    'Urology'
+    "Cardiology",
+    "Dermatology",
+    "Endocrinology",
+    "Gastroenterology",
+    "Neurology",
+    "Oncology",
+    "Orthopedics",
+    "Pediatrics",
+    "Psychiatry",
+    "Radiology",
+    "Surgery",
+    "Urology"
   ];
 
   // Quick setup mutation
   const quickSetupMutation = useMutation(
-    () => doctorsAPI.quickSetup(),
+    (hospitalId) => doctorsAPI.quickSetup({ hospitalId }),
     {
       onSuccess: () => {
-        toast.success('Doctor profile created successfully! You can now be seen by patients.');
+        toast.success(
+          "Doctor profile created successfully and pending approval!"
+        );
         setShowQuickSetupModal(false);
-        queryClient.invalidateQueries('doctors');
+        queryClient.invalidateQueries("doctors");
       },
       onError: (error) => {
-        toast.error(error.response?.data?.message || 'Failed to create doctor profile');
-      }}
+        toast.error(
+          error.response?.data?.message || "Failed to create doctor profile"
+        );
+      }
+    }
   );
 
   const handleDoctorClick = (doctor) => {
@@ -72,15 +89,15 @@ const Doctors = () => {
 
   const getAvailabilityText = (availability) => {
     if (!availability || availability.length === 0) {
-      return 'Not available';
+      return "Not available";
     }
-    
+
     const days = availability
-      .filter(avail => avail.isAvailable)
-      .map(avail => avail.day.charAt(0).toUpperCase() + avail.day.slice(1))
+      .filter((avail) => avail.isAvailable)
+      .map((avail) => avail.day.charAt(0).toUpperCase() + avail.day.slice(1))
       .slice(0, 3);
-    
-    if (days.length === 0) return 'Not available';
+
+    if (days.length === 0) return "Not available";
     if (days.length === 1) return `Available on ${days[0]}`;
     if (days.length === 2) return `Available on ${days[0]} & ${days[1]}`;
     return `Available on ${days[0]}, ${days[1]} & ${days[2]}`;
@@ -90,20 +107,24 @@ const Doctors = () => {
     const stars = [];
     const fullStars = Math.floor(rating);
     const hasHalfStar = rating % 1 !== 0;
-    
+
     for (let i = 0; i < fullStars; i++) {
-      stars.push(<Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />);
+      stars.push(
+        <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+      );
     }
-    
+
     if (hasHalfStar) {
-      stars.push(<Star key="half" className="h-4 w-4 fill-yellow-400 text-yellow-400" />);
+      stars.push(
+        <Star key="half" className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+      );
     }
-    
+
     const emptyStars = 5 - Math.ceil(rating);
     for (let i = 0; i < emptyStars; i++) {
       stars.push(<Star key={`empty-${i}`} className="h-4 w-4 text-gray-300" />);
     }
-    
+
     return stars;
   };
 
@@ -118,7 +139,7 @@ const Doctors = () => {
               Browse available doctors and their specializations.
             </p>
           </div>
-          {user?.role === 'doctor' && (
+          {user?.role === "doctor" && (
             <div className="flex space-x-2">
               <button
                 onClick={() => setShowQuickSetupModal(true)}
@@ -140,7 +161,7 @@ const Doctors = () => {
       </div>
 
       {/* Doctor Setup Notification */}
-      {user?.role === 'doctor' && doctorsData?.doctors?.length === 0 && (
+      {user?.role === "doctor" && doctorsData?.doctors?.length === 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
           <div className="flex items-center">
             <div className="flex-shrink-0">
@@ -151,8 +172,9 @@ const Doctors = () => {
                 Complete Your Doctor Profile
               </h3>
               <p className="text-yellow-800 mt-1">
-                You need to create a doctor profile before patients can see and book appointments with you. 
-                Use the "Quick Setup" button above to get started immediately.
+                You need to create a doctor profile before patients can see and
+                book appointments with you. Use the "Quick Setup" button above
+                to get started immediately.
               </p>
             </div>
           </div>
@@ -192,6 +214,23 @@ const Doctors = () => {
               ))}
             </select>
           </div>
+
+          {/* Hospital Filter */}
+          <div className="flex items-center space-x-2">
+            <Building2 className="h-5 w-5 text-gray-400" />
+            <select
+              value={selectedHospital}
+              onChange={(e) => setSelectedHospital(e.target.value)}
+              className="input-field w-auto"
+            >
+              <option value="">All Hospitals</option>
+              {hospitalsData?.hospitals?.map((hospital) => (
+                <option key={hospital._id} value={hospital._id}>
+                  {hospital.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -200,7 +239,10 @@ const Doctors = () => {
         {doctorsLoading ? (
           // Loading skeleton
           Array.from({ length: 6 }).map((_, index) => (
-            <div key={index} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 animate-pulse">
+            <div
+              key={index}
+              className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 animate-pulse"
+            >
               <div className="flex items-center space-x-4">
                 <div className="h-12 w-12 bg-gray-200 rounded-full"></div>
                 <div className="flex-1">
@@ -217,12 +259,13 @@ const Doctors = () => {
         ) : doctorsData?.doctors?.length === 0 ? (
           <div className="col-span-full bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
             <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No doctors found</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No doctors found
+            </h3>
             <p className="text-gray-600">
-              {searchTerm || selectedSpecialization 
-                ? 'Try adjusting your search criteria'
-                : 'No doctors are currently available'
-              }
+              {searchTerm || selectedSpecialization
+                ? "Try adjusting your search criteria"
+                : "No doctors are currently available"}
             </p>
           </div>
         ) : (
@@ -241,9 +284,17 @@ const Doctors = () => {
                 </div>
                 <div className="flex-1">
                   <h3 className="text-lg font-semibold text-gray-900">
-                    Dr. {doctor.userId.profile.firstName} {doctor.userId.profile.lastName}
+                    Dr. {doctor.userId.profile.firstName}{" "}
+                    {doctor.userId.profile.lastName}
                   </h3>
-                  <p className="text-sm text-gray-600">{doctor.specialization}</p>
+                  <p className="text-sm text-gray-600">
+                    {doctor.specialization}
+                  </p>
+                  {doctor.hospitalId && (
+                    <p className="text-xs text-gray-500">
+                      {doctor.hospitalId.name}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -304,7 +355,7 @@ const Doctors = () => {
               )}
 
               {/* Action Button */}
-              {user?.role === 'patient' && (
+              {user?.role === "patient" && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -328,7 +379,8 @@ const Doctors = () => {
             <div className="mt-3">
               <div className="flex justify-between items-start mb-6">
                 <h3 className="text-xl font-semibold text-gray-900">
-                  Dr. {selectedDoctor.userId.profile.firstName} {selectedDoctor.userId.profile.lastName}
+                  Dr. {selectedDoctor.userId.profile.firstName}{" "}
+                  {selectedDoctor.userId.profile.lastName}
                 </h3>
                 <button
                   onClick={() => setShowProfileModal(false)}
@@ -342,20 +394,36 @@ const Doctors = () => {
                 {/* Basic Info */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Specialization</h4>
-                    <p className="text-gray-600">{selectedDoctor.specialization}</p>
+                    <h4 className="font-medium text-gray-900 mb-2">
+                      Specialization
+                    </h4>
+                    <p className="text-gray-600">
+                      {selectedDoctor.specialization}
+                    </p>
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Experience</h4>
-                    <p className="text-gray-600">{selectedDoctor.experience} years</p>
+                    <h4 className="font-medium text-gray-900 mb-2">
+                      Experience
+                    </h4>
+                    <p className="text-gray-600">
+                      {selectedDoctor.experience} years
+                    </p>
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-2">License Number</h4>
-                    <p className="text-gray-600">{selectedDoctor.licenseNumber}</p>
+                    <h4 className="font-medium text-gray-900 mb-2">
+                      License Number
+                    </h4>
+                    <p className="text-gray-600">
+                      {selectedDoctor.licenseNumber}
+                    </p>
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Consultation Fee</h4>
-                    <p className="text-gray-600">${selectedDoctor.consultationFee}</p>
+                    <h4 className="font-medium text-gray-900 mb-2">
+                      Consultation Fee
+                    </h4>
+                    <p className="text-gray-600">
+                      ${selectedDoctor.consultationFee}
+                    </p>
                   </div>
                 </div>
 
@@ -367,7 +435,8 @@ const Doctors = () => {
                       {getRatingStars(selectedDoctor.rating.average)}
                     </div>
                     <span className="text-gray-600">
-                      {selectedDoctor.rating.average.toFixed(1)} ({selectedDoctor.rating.count} reviews)
+                      {selectedDoctor.rating.average.toFixed(1)} (
+                      {selectedDoctor.rating.count} reviews)
                     </span>
                   </div>
                 </div>
@@ -381,49 +450,63 @@ const Doctors = () => {
                 )}
 
                 {/* Education */}
-                {selectedDoctor.education && selectedDoctor.education.length > 0 && (
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Education</h4>
-                    <div className="space-y-2">
-                      {selectedDoctor.education.map((edu, index) => (
-                        <div key={index} className="text-gray-600">
-                          <p className="font-medium">{edu.degree}</p>
-                          <p className="text-sm">{edu.institution} ({edu.year})</p>
-                        </div>
-                      ))}
+                {selectedDoctor.education &&
+                  selectedDoctor.education.length > 0 && (
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">
+                        Education
+                      </h4>
+                      <div className="space-y-2">
+                        {selectedDoctor.education.map((edu, index) => (
+                          <div key={index} className="text-gray-600">
+                            <p className="font-medium">{edu.degree}</p>
+                            <p className="text-sm">
+                              {edu.institution} ({edu.year})
+                            </p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
                 {/* Languages */}
-                {selectedDoctor.languages && selectedDoctor.languages.length > 0 && (
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Languages</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedDoctor.languages.map((lang, index) => (
-                        <span
-                          key={index}
-                          className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-800"
-                        >
-                          {lang}
-                        </span>
-                      ))}
+                {selectedDoctor.languages &&
+                  selectedDoctor.languages.length > 0 && (
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">
+                        Languages
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedDoctor.languages.map((lang, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-800"
+                          >
+                            {lang}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
                 {/* Availability */}
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-2">Availability</h4>
+                  <h4 className="font-medium text-gray-900 mb-2">
+                    Availability
+                  </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {selectedDoctor.availability.map((avail, index) => (
-                      <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                        <span className="font-medium capitalize">{avail.day}</span>
+                      <div
+                        key={index}
+                        className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
+                      >
+                        <span className="font-medium capitalize">
+                          {avail.day}
+                        </span>
                         <span className="text-sm text-gray-600">
-                          {avail.isAvailable 
+                          {avail.isAvailable
                             ? `${avail.startTime} - ${avail.endTime}`
-                            : 'Not available'
-                          }
+                            : "Not available"}
                         </span>
                       </div>
                     ))}
@@ -431,7 +514,7 @@ const Doctors = () => {
                 </div>
 
                 {/* Action Buttons */}
-                {user?.role === 'patient' && (
+                {user?.role === "patient" && (
                   <div className="flex space-x-3 pt-4 border-t">
                     <button
                       onClick={() => {
@@ -456,7 +539,9 @@ const Doctors = () => {
           <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <div className="flex justify-between items-start mb-6">
-                <h3 className="text-lg font-medium text-gray-900">Quick Doctor Profile Setup</h3>
+                <h3 className="text-lg font-medium text-gray-900">
+                  Quick Doctor Profile Setup
+                </h3>
                 <button
                   onClick={() => setShowQuickSetupModal(false)}
                   className="text-gray-400 hover:text-gray-600"
@@ -467,7 +552,9 @@ const Doctors = () => {
 
               <div className="space-y-4">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h4 className="font-medium text-blue-900 mb-2">What will be created:</h4>
+                  <h4 className="font-medium text-blue-900 mb-2">
+                    What will be created:
+                  </h4>
                   <ul className="text-sm text-blue-800 space-y-1">
                     <li>• Specialization: General Medicine</li>
                     <li>• Consultation Fee: $50</li>
@@ -477,9 +564,29 @@ const Doctors = () => {
                   </ul>
                 </div>
 
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select Hospital
+                  </label>
+                  <select
+                    value={selectedHospital}
+                    onChange={(e) => setSelectedHospital(e.target.value)}
+                    className="input-field w-full"
+                    required
+                  >
+                    <option value="">Select a hospital</option>
+                    {hospitalsData?.hospitals?.map((hospital) => (
+                      <option key={hospital._id} value={hospital._id}>
+                        {hospital.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <p className="text-sm text-gray-600">
-                  This will create a basic doctor profile so you can be seen by patients immediately. 
-                  You can update your details later in your profile.
+                  This will create a basic doctor profile and associate you with
+                  the selected hospital. Your profile will be pending approval
+                  before patients can see you.
                 </p>
 
                 <div className="flex justify-end space-x-3 pt-4">
@@ -490,11 +597,13 @@ const Doctors = () => {
                     Cancel
                   </button>
                   <button
-                    onClick={() => quickSetupMutation.mutate()}
-                    disabled={quickSetupMutation.isLoading}
+                    onClick={() => quickSetupMutation.mutate(selectedHospital)}
+                    disabled={quickSetupMutation.isLoading || !selectedHospital}
                     className="btn-primary"
                   >
-                    {quickSetupMutation.isLoading ? 'Creating...' : 'Create Profile'}
+                    {quickSetupMutation.isLoading
+                      ? "Creating..."
+                      : "Create Profile"}
                   </button>
                 </div>
               </div>

@@ -72,7 +72,7 @@ export const doctorsAPI = {
   getAvailability: (id, date) =>
     api.get(`/api/doctors/${id}/availability`, { params: { date } }),
   createProfile: (profileData) => api.post("/api/doctors", profileData),
-  quickSetup: () => api.post("/api/doctors/quick-setup"),
+  quickSetup: (data) => api.post("/api/doctors/quick-setup", data),
   updateProfile: (id, profileData) =>
     api.put(`/api/doctors/${id}`, profileData),
   updateAvailability: (id, availability) =>
@@ -124,4 +124,27 @@ export const patientsAPI = {
   getStats: (id) => api.get(`/api/patients/${id}/stats`),
   update: (id, profileData) =>
     api.put(`/api/patients/${id}`, { profile: profileData })
+};
+
+export const hospitalsAPI = {
+  getAll: (params) => api.get("/api/hospitals", { params }),
+  getById: (id) => api.get(`/api/hospitals/${id}`),
+  create: (hospitalData) => api.post("/api/hospitals", hospitalData),
+  update: (id, hospitalData) => api.put(`/api/hospitals/${id}`, hospitalData),
+  delete: (id) => api.delete(`/api/hospitals/${id}`),
+  getMyHospitals: () => api.get("/api/hospitals/my-hospitals"),
+  getPendingApprovals: () => api.get("/api/hospitals/pending/approvals"),
+  approve: (id, approvalData) =>
+    api.put(`/api/hospitals/${id}/approve`, approvalData)
+};
+
+export const adminAPI = {
+  getDashboard: () => api.get("/api/admin/dashboard"),
+  getPendingUsers: () => api.get("/api/admin/pending-users"),
+  approveUser: (id, approvalData) =>
+    api.put(`/api/admin/users/${id}/approve`, approvalData),
+  getPendingDoctors: () => api.get("/api/admin/pending-doctors"),
+  approveDoctor: (id, approvalData) =>
+    api.put(`/api/admin/doctors/${id}/approve`, approvalData),
+  getUsers: (params) => api.get("/api/admin/users", { params })
 };
