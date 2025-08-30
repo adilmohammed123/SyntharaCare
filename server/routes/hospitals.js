@@ -7,16 +7,23 @@ const { auth, authorize } = require("../middleware/auth");
 const router = express.Router();
 
 // @route   GET /api/hospitals
-// @desc    Get all approved hospitals
-// @access  Public
+// @desc    Get all approved hospitals (public) or all hospitals for admins
+// @access  Public/Private (Admin)
 router.get("/", async (req, res) => {
   try {
     const { page = 1, limit = 10, type, city, search = "" } = req.query;
 
+    // Check if user is admin - admins can see all hospitals
+    const isAdmin = req.user && req.user.role === "admin";
+
     const query = {
-      isActive: true,
-      approvalStatus: "approved"
+      isActive: true
     };
+
+    // Only show approved hospitals to non-admin users
+    if (!isAdmin) {
+      query.approvalStatus = "approved";
+    }
 
     if (type) {
       query.type = type;
@@ -59,8 +66,8 @@ router.get("/", async (req, res) => {
 });
 
 // @route   GET /api/hospitals/:id
-// @desc    Get hospital by ID
-// @access  Public
+// @desc    Get hospital by ID (only approved hospitals for public, all for admins)
+// @access  Public/Private (Admin)
 router.get("/:id", async (req, res) => {
   try {
     const hospital = await Hospital.findById(req.params.id)
@@ -68,6 +75,14 @@ router.get("/:id", async (req, res) => {
       .populate("approvedBy", "profile.firstName profile.lastName");
 
     if (!hospital) {
+      return res.status(404).json({ message: "Hospital not found" });
+    }
+
+    // Check if user is admin - admins can see all hospitals
+    const isAdmin = req.user && req.user.role === "admin";
+
+    // Only show approved hospitals to non-admin users
+    if (!isAdmin && hospital.approvalStatus !== "approved") {
       return res.status(404).json({ message: "Hospital not found" });
     }
 

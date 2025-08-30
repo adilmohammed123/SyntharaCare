@@ -134,6 +134,67 @@ router.get("/:id/appointments", auth, authorize("doctor"), async (req, res) => {
   }
 });
 
+// @route   GET /api/doctors/by-hospital/:hospitalId
+// @desc    Get all doctors for a specific hospital
+// @access  Public
+router.get("/by-hospital/:hospitalId", async (req, res) => {
+  try {
+    const { hospitalId } = req.params;
+    const { specialization, search = "" } = req.query;
+
+    // Verify hospital exists and is approved
+    const Hospital = require("../models/Hospital");
+    const hospital = await Hospital.findById(hospitalId);
+    if (
+      !hospital ||
+      hospital.approvalStatus !== "approved" ||
+      !hospital.isActive
+    ) {
+      return res
+        .status(404)
+        .json({ message: "Hospital not found or not approved" });
+    }
+
+    const query = {
+      hospitalId,
+      isActive: true,
+      approvalStatus: "approved"
+    };
+
+    if (specialization) {
+      query.specialization = { $regex: specialization, $options: "i" };
+    }
+
+    const doctors = await Doctor.find(query)
+      .populate("userId", "profile.firstName profile.lastName email")
+      .populate("hospitalId", "name address.city")
+      .sort({ rating: -1 });
+
+    // Filter by search if provided
+    let filteredDoctors = doctors;
+    if (search) {
+      filteredDoctors = doctors.filter(
+        (doctor) =>
+          doctor.userId.profile.firstName
+            .toLowerCase()
+            .includes(search.toLowerCase()) ||
+          doctor.userId.profile.lastName
+            .toLowerCase()
+            .includes(search.toLowerCase()) ||
+          doctor.specialization.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+
+    res.json({
+      doctors: filteredDoctors,
+      total: filteredDoctors.length
+    });
+  } catch (error) {
+    console.error("Get doctors by hospital error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 // @route   GET /api/doctors/:id/availability
 // @desc    Get doctor availability
 // @access  Public
@@ -252,7 +313,11 @@ router.post(
       // Verify hospital exists and is approved
       const Hospital = require("../models/Hospital");
       const hospital = await Hospital.findById(req.body.hospitalId);
-      if (!hospital || hospital.approvalStatus !== "approved") {
+      if (
+        !hospital ||
+        hospital.approvalStatus !== "approved" ||
+        !hospital.isActive
+      ) {
         return res
           .status(400)
           .json({ message: "Invalid or unapproved hospital" });
@@ -302,7 +367,11 @@ router.post(
       // Verify hospital exists and is approved
       const Hospital = require("../models/Hospital");
       const hospital = await Hospital.findById(req.body.hospitalId);
-      if (!hospital || hospital.approvalStatus !== "approved") {
+      if (
+        !hospital ||
+        hospital.approvalStatus !== "approved" ||
+        !hospital.isActive
+      ) {
         return res
           .status(400)
           .json({ message: "Invalid or unapproved hospital" });

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "react-query";
 import { useForm } from "react-hook-form";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
-import { appointmentsAPI, doctorsAPI } from "../utils/api";
+import { appointmentsAPI, doctorsAPI, hospitalsAPI } from "../utils/api";
 import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";
 import KanbanBoard from "../components/KanbanBoard";
@@ -25,6 +25,7 @@ const Appointments = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [showBookingModal, setShowBookingModal] = useState(false);
+  const [selectedHospital, setSelectedHospital] = useState(null);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [selectedDate, setSelectedDate] = useState("");
   const [availableSlots, setAvailableSlots] = useState([]);
@@ -52,20 +53,27 @@ const Appointments = () => {
     }
   );
 
-  // Fetch doctors
+  // Fetch hospitals
+  const { data: hospitalsData, isLoading: hospitalsLoading } = useQuery(
+    "hospitals",
+    () => hospitalsAPI.getAll(),
+    {
+      refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000 // 5 minutes
+    }
+  );
+
+  // Fetch doctors by hospital
   const {
     data: doctorsData,
     isLoading: doctorsLoading,
     error: doctorsError
   } = useQuery(
-    "doctors",
-    async () => {
-      console.log("Making API call to fetch doctors...");
-      const response = await doctorsAPI.getAll();
-      console.log("API response:", response);
-      return response;
-    },
+    ["doctors-by-hospital", selectedHospital],
+    () =>
+      selectedHospital ? doctorsAPI.getByHospital(selectedHospital) : null,
     {
+      enabled: !!selectedHospital,
       refetchOnWindowFocus: false,
       staleTime: 5 * 60 * 1000 // 5 minutes
     }
@@ -102,6 +110,9 @@ const Appointments = () => {
         console.log("Appointment created successfully:", response);
         toast.success("Appointment booked successfully!");
         setShowBookingModal(false);
+        setSelectedHospital(null);
+        setSelectedDoctor(null);
+        setSelectedDate("");
         reset();
         queryClient.invalidateQueries("appointments");
       },
@@ -219,15 +230,17 @@ const Appointments = () => {
 
   const onSubmit = (data) => {
     console.log("Form submitted with data:", data);
+    console.log("selectedHospital:", selectedHospital);
     console.log("selectedDoctor:", selectedDoctor);
     console.log("selectedDate:", selectedDate);
 
-    if (!selectedDoctor || !selectedDate || !data.time) {
-      toast.error("Please select doctor, date, and time");
+    if (!selectedHospital || !selectedDoctor || !selectedDate || !data.time) {
+      toast.error("Please select hospital, doctor, date, and time");
       return;
     }
 
     const appointmentData = {
+      hospitalId: selectedHospital,
       doctorId: selectedDoctor,
       date: selectedDate,
       time: data.time,
@@ -720,6 +733,42 @@ const Appointments = () => {
                 Book New Appointment
               </h3>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                {/* Hospital Selection */}
+                <div>
+                  <label className="form-label">Select Hospital</label>
+                  <select
+                    value={selectedHospital || ""}
+                    onChange={(e) => {
+                      setSelectedHospital(e.target.value);
+                      setSelectedDoctor(null); // Reset doctor selection when hospital changes
+                    }}
+                    className="input-field"
+                    required
+                  >
+                    <option value="">Choose a hospital</option>
+                    {hospitalsLoading ? (
+                      <option value="" disabled>
+                        Loading hospitals...
+                      </option>
+                    ) : hospitalsData?.hospitals?.length > 0 ? (
+                      hospitalsData.hospitals.map((hospital) => (
+                        <option key={hospital._id} value={hospital._id}>
+                          {hospital.name} - {hospital.address.city}
+                        </option>
+                      ))
+                    ) : (
+                      <option value="" disabled>
+                        No hospitals available
+                      </option>
+                    )}
+                  </select>
+                  {hospitalsLoading && (
+                    <p className="text-sm text-gray-500">
+                      Loading hospitals...
+                    </p>
+                  )}
+                </div>
+
                 {/* Doctor Selection */}
                 <div>
                   <label className="form-label">Select Doctor</label>
@@ -728,8 +777,13 @@ const Appointments = () => {
                     onChange={(e) => setSelectedDoctor(e.target.value)}
                     className="input-field"
                     required
+                    disabled={!selectedHospital}
                   >
-                    <option value="">Choose a doctor</option>
+                    <option value="">
+                      {selectedHospital
+                        ? "Choose a doctor"
+                        : "Select hospital first"}
+                    </option>
                     {doctorsLoading ? (
                       <option value="" disabled>
                         Loading doctors...
@@ -742,9 +796,13 @@ const Appointments = () => {
                           {doctor.specialization}
                         </option>
                       ))
+                    ) : selectedHospital ? (
+                      <option value="" disabled>
+                        No doctors available in this hospital
+                      </option>
                     ) : (
                       <option value="" disabled>
-                        No doctors available
+                        Select a hospital first
                       </option>
                     )}
                   </select>
@@ -758,10 +816,12 @@ const Appointments = () => {
                   )}
                   {!doctorsLoading &&
                     !doctorsError &&
+                    selectedHospital &&
                     (!doctorsData?.doctors ||
                       doctorsData.doctors.length === 0) && (
                       <p className="text-sm text-red-500">
-                        No doctors found. Please try again later.
+                        No doctors found in this hospital. Please try another
+                        hospital.
                       </p>
                     )}
                 </div>
@@ -829,7 +889,13 @@ const Appointments = () => {
                 <div className="flex justify-end space-x-3 pt-4">
                   <button
                     type="button"
-                    onClick={() => setShowBookingModal(false)}
+                    onClick={() => {
+                      setShowBookingModal(false);
+                      setSelectedHospital(null);
+                      setSelectedDoctor(null);
+                      setSelectedDate("");
+                      reset();
+                    }}
                     className="btn-secondary"
                   >
                     Cancel
