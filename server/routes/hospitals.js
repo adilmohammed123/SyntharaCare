@@ -39,6 +39,18 @@ router.get("/", async (req, res) => {
       .skip((page - 1) * limit)
       .sort({ rating: -1, name: 1 });
 
+    // Add doctor count to each hospital
+    const Doctor = require("../models/Doctor");
+    for (let hospital of hospitals) {
+      const doctorCount = await Doctor.countDocuments({
+        hospitalId: hospital._id,
+        isActive: true,
+        approvalStatus: "approved"
+      });
+      hospital = hospital.toObject();
+      hospital.doctorCount = doctorCount;
+    }
+
     // Filter by search if provided
     if (search) {
       hospitals = hospitals.filter(

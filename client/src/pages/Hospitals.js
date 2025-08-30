@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "react-query";
 import { hospitalsAPI } from "../utils/api";
 import { useAuth } from "../contexts/AuthContext";
@@ -382,6 +382,14 @@ const Hospitals = () => {
                 <Phone className="h-4 w-4 text-gray-400" />
                 <span className="text-sm text-gray-600">
                   {hospital.contact.phone}
+                </span>
+              </div>
+
+              {/* Doctor Count */}
+              <div className="flex items-center space-x-2 mb-3">
+                <Users className="h-4 w-4 text-gray-400" />
+                <span className="text-sm text-gray-600">
+                  {hospital.doctorCount || 0} doctors
                 </span>
               </div>
 
@@ -934,6 +942,28 @@ const CreateHospitalModal = ({
 
 // Hospital Details Modal Component
 const HospitalDetailsModal = ({ hospital, onClose, user }) => {
+  const [doctors, setDoctors] = useState([]);
+  const [loadingDoctors, setLoadingDoctors] = useState(false);
+
+  // Fetch doctors for this hospital
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      setLoadingDoctors(true);
+      try {
+        const response = await fetch(
+          `/api/doctors/by-hospital/${hospital._id}`
+        );
+        const data = await response.json();
+        setDoctors(data.doctors || []);
+      } catch (error) {
+        console.error("Error fetching doctors:", error);
+      } finally {
+        setLoadingDoctors(false);
+      }
+    };
+
+    fetchDoctors();
+  }, [hospital._id]);
   const getRatingStars = (rating) => {
     const stars = [];
     const fullStars = Math.floor(rating);
@@ -1119,6 +1149,49 @@ const HospitalDetailsModal = ({ hospital, onClose, user }) => {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Doctors */}
+            <div>
+              <h4 className="font-medium text-gray-900 mb-2">
+                Doctors ({doctors.length})
+              </h4>
+              {loadingDoctors ? (
+                <div className="text-gray-600">Loading doctors...</div>
+              ) : doctors.length > 0 ? (
+                <div className="space-y-3">
+                  {doctors.slice(0, 5).map((doctor) => (
+                    <div
+                      key={doctor._id}
+                      className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg"
+                    >
+                      <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
+                        <span className="text-sm font-semibold text-primary-600">
+                          {doctor.userId.profile.firstName.charAt(0)}
+                        </span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">
+                          Dr. {doctor.userId.profile.firstName}{" "}
+                          {doctor.userId.profile.lastName}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          {doctor.specialization}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  {doctors.length > 5 && (
+                    <p className="text-sm text-gray-600">
+                      +{doctors.length - 5} more doctors
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="text-gray-600">
+                  No doctors found at this hospital
+                </div>
+              )}
             </div>
 
             {/* Action Buttons */}

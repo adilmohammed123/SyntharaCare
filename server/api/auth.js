@@ -84,7 +84,10 @@ router.post(
         email,
         password: hashedPassword,
         role,
-        profile
+        profile,
+        // Auto-approve admin users and patients
+        approvalStatus:
+          role === "admin" || role === "patient" ? "approved" : "pending"
       });
 
       await user.save();
@@ -158,6 +161,12 @@ router.post(
         expiresIn: process.env.JWT_EXPIRE
       });
 
+      // Ensure admin users and patients are always considered approved
+      const effectiveApprovalStatus =
+        user.role === "admin" || user.role === "patient"
+          ? "approved"
+          : user.approvalStatus;
+
       res.status(201).json({
         token,
         user: {
@@ -165,7 +174,7 @@ router.post(
           email: user.email,
           role: user.role,
           profile: user.profile,
-          approvalStatus: user.approvalStatus
+          approvalStatus: effectiveApprovalStatus
         }
       });
     } catch (error) {
@@ -213,6 +222,12 @@ router.post(
         expiresIn: process.env.JWT_EXPIRE
       });
 
+      // Ensure admin users and patients are always considered approved
+      const effectiveApprovalStatus =
+        user.role === "admin" || user.role === "patient"
+          ? "approved"
+          : user.approvalStatus;
+
       res.json({
         token,
         user: {
@@ -220,7 +235,7 @@ router.post(
           email: user.email,
           role: user.role,
           profile: user.profile,
-          approvalStatus: user.approvalStatus
+          approvalStatus: effectiveApprovalStatus
         }
       });
     } catch (error) {
@@ -250,12 +265,18 @@ router.get("/me", withDB, async (req, res) => {
       return res.status(401).json({ message: "Token is not valid" });
     }
 
+    // Ensure admin users and patients are always considered approved
+    const effectiveApprovalStatus =
+      user.role === "admin" || user.role === "patient"
+        ? "approved"
+        : user.approvalStatus;
+
     res.json({
       _id: user._id,
       email: user.email,
       role: user.role,
       profile: user.profile,
-      approvalStatus: user.approvalStatus
+      approvalStatus: effectiveApprovalStatus
     });
   } catch (error) {
     console.error("Get user error:", error);
@@ -304,6 +325,12 @@ router.put(
 
       await user.save();
 
+      // Ensure admin users and patients are always considered approved
+      const effectiveApprovalStatus =
+        user.role === "admin" || user.role === "patient"
+          ? "approved"
+          : user.approvalStatus;
+
       res.json({
         message: "Profile updated successfully",
         user: {
@@ -311,7 +338,7 @@ router.put(
           email: user.email,
           role: user.role,
           profile: user.profile,
-          approvalStatus: user.approvalStatus
+          approvalStatus: effectiveApprovalStatus
         }
       });
     } catch (error) {

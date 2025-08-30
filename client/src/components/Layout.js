@@ -72,7 +72,7 @@ const Layout = ({ children }) => {
               <X className="h-6 w-6" />
             </button>
           </div>
-          {user?.approvalStatus !== "approved" && (
+          {user?.role !== "patient" && user?.approvalStatus !== "approved" && (
             <div className="px-4 py-2">
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2">
                 <span className="text-sm text-yellow-800">
@@ -145,11 +145,12 @@ const Layout = ({ children }) => {
                   {user?.profile?.firstName} {user?.profile?.lastName}
                 </p>
                 <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
-                {user?.approvalStatus !== "approved" && (
-                  <p className="text-xs text-yellow-600 capitalize">
-                    {user?.approvalStatus}
-                  </p>
-                )}
+                {user?.role !== "patient" &&
+                  user?.approvalStatus !== "approved" && (
+                    <p className="text-xs text-yellow-600 capitalize">
+                      {user?.approvalStatus}
+                    </p>
+                  )}
               </div>
             </div>
             <button
@@ -177,15 +178,16 @@ const Layout = ({ children }) => {
 
           <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
             <div className="flex flex-1">
-              {user?.approvalStatus !== "approved" && (
-                <div className="flex items-center">
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-1">
-                    <span className="text-sm text-yellow-800">
-                      ⚠️ Account {user?.approvalStatus} - Limited access
-                    </span>
+              {user?.role !== "patient" &&
+                user?.approvalStatus !== "approved" && (
+                  <div className="flex items-center">
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-1">
+                      <span className="text-sm text-yellow-800">
+                        ⚠️ Account {user?.approvalStatus} - Limited access
+                      </span>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </div>
             <div className="flex items-center gap-x-4 lg:gap-x-6">
               <div className="hidden lg:block lg:h-6 lg:w-px lg:bg-gray-200" />

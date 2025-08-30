@@ -37,8 +37,8 @@ function AppContent() {
     );
   }
 
-  // Check if user needs approval
-  if (user && user.approvalStatus !== "approved") {
+  // Check if user needs approval (patients don't need approval)
+  if (user && user.role !== "patient" && user.approvalStatus !== "approved") {
     return <PendingApproval />;
   }
 

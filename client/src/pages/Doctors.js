@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "react-query";
 import { doctorsAPI, hospitalsAPI } from "../utils/api";
 import { useAuth } from "../contexts/AuthContext";
@@ -24,6 +24,15 @@ const Doctors = () => {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showQuickSetupModal, setShowQuickSetupModal] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
+
+  // Handle URL parameters for hospital filter
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hospitalId = urlParams.get("hospitalId");
+    if (hospitalId) {
+      setSelectedHospital(hospitalId);
+    }
+  }, []);
 
   // Fetch doctors
   const { data: doctorsData, isLoading: doctorsLoading } = useQuery(
