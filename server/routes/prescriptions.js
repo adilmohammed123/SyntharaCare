@@ -1,14 +1,20 @@
 const express = require("express");
 const router = express.Router();
 const Prescription = require("../models/Prescription");
-const auth = require("../middleware/auth");
-const authorize = require("../middleware/authorize");
+const Doctor = require("../models/Doctor");
+const { auth, authorize } = require("../middleware/auth");
 
 // Get all prescriptions for a patient
 router.get("/patient", auth, async (req, res) => {
   try {
-    const prescriptions = await Prescription.find({ patientId: req.user.id })
-      .populate("doctorId", "name specialization")
+    const prescriptions = await Prescription.find({ patientId: req.user._id })
+      .populate({
+        path: "doctorId",
+        populate: {
+          path: "userId",
+          select: "profile.firstName profile.lastName"
+        }
+      })
       .populate("hospitalId", "name")
       .sort({ prescriptionDate: -1 });
 
@@ -21,10 +27,18 @@ router.get("/patient", auth, async (req, res) => {
 // Get all prescriptions for a doctor
 router.get("/doctor", auth, authorize("doctor"), async (req, res) => {
   try {
+    // Find the doctor record for this user
+    const doctor = await Doctor.findOne({ userId: req.user._id });
+    if (!doctor) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Doctor profile not found" });
+    }
+
     const prescriptions = await Prescription.find({
-      doctorId: req.user.doctorId
+      doctorId: doctor._id
     })
-      .populate("patientId", "name email")
+      .populate("patientId", "profile.firstName profile.lastName email")
       .populate("hospitalId", "name")
       .sort({ prescriptionDate: -1 });
 
@@ -38,8 +52,14 @@ router.get("/doctor", auth, authorize("doctor"), async (req, res) => {
 router.get("/:id", auth, async (req, res) => {
   try {
     const prescription = await Prescription.findById(req.params.id)
-      .populate("patientId", "name email")
-      .populate("doctorId", "name specialization")
+      .populate("patientId", "profile.firstName profile.lastName email")
+      .populate({
+        path: "doctorId",
+        populate: {
+          path: "userId",
+          select: "profile.firstName profile.lastName"
+        }
+      })
       .populate("hospitalId", "name");
 
     if (!prescription) {
@@ -51,16 +71,21 @@ router.get("/:id", auth, async (req, res) => {
     // Check if user has access to this prescription
     if (
       req.user.role === "patient" &&
-      prescription.patientId._id.toString() !== req.user.id
+      prescription.patientId._id.toString() !== req.user._id.toString()
     ) {
       return res.status(403).json({ success: false, message: "Access denied" });
     }
 
-    if (
-      req.user.role === "doctor" &&
-      prescription.doctorId._id.toString() !== req.user.doctorId
-    ) {
-      return res.status(403).json({ success: false, message: "Access denied" });
+    if (req.user.role === "doctor") {
+      const doctor = await Doctor.findOne({ userId: req.user._id });
+      if (
+        !doctor ||
+        prescription.doctorId._id.toString() !== doctor._id.toString()
+      ) {
+        return res
+          .status(403)
+          .json({ success: false, message: "Access denied" });
+      }
     }
 
     res.json({ success: true, prescription });
@@ -72,6 +97,14 @@ router.get("/:id", auth, async (req, res) => {
 // Create new prescription
 router.post("/", auth, authorize("doctor"), async (req, res) => {
   try {
+    // Find the doctor record for this user
+    const doctor = await Doctor.findOne({ userId: req.user._id });
+    if (!doctor) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Doctor profile not found" });
+    }
+
     const {
       patientId,
       originalText,
@@ -85,8 +118,8 @@ router.post("/", auth, authorize("doctor"), async (req, res) => {
 
     const prescription = new Prescription({
       patientId,
-      doctorId: req.user.doctorId,
-      hospitalId: req.user.hospitalId,
+      doctorId: doctor._id,
+      hospitalId: doctor.hospitalId,
       originalText,
       extractedMedicines,
       diagnosis,
@@ -99,8 +132,14 @@ router.post("/", auth, authorize("doctor"), async (req, res) => {
     await prescription.save();
 
     const populatedPrescription = await Prescription.findById(prescription._id)
-      .populate("patientId", "name email")
-      .populate("doctorId", "name specialization")
+      .populate("patientId", "profile.firstName profile.lastName email")
+      .populate({
+        path: "doctorId",
+        populate: {
+          path: "userId",
+          select: "profile.firstName profile.lastName"
+        }
+      })
       .populate("hospitalId", "name");
 
     res
@@ -122,8 +161,16 @@ router.put("/:id", auth, authorize("doctor"), async (req, res) => {
         .json({ success: false, message: "Prescription not found" });
     }
 
+    // Find the doctor record for this user
+    const doctor = await Doctor.findOne({ userId: req.user._id });
+    if (!doctor) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Doctor profile not found" });
+    }
+
     // Check if doctor owns this prescription
-    if (prescription.doctorId.toString() !== req.user.doctorId) {
+    if (prescription.doctorId.toString() !== doctor._id.toString()) {
       return res.status(403).json({ success: false, message: "Access denied" });
     }
 
@@ -132,8 +179,14 @@ router.put("/:id", auth, authorize("doctor"), async (req, res) => {
       req.body,
       { new: true }
     )
-      .populate("patientId", "name email")
-      .populate("doctorId", "name specialization")
+      .populate("patientId", "profile.firstName profile.lastName email")
+      .populate({
+        path: "doctorId",
+        populate: {
+          path: "userId",
+          select: "profile.firstName profile.lastName"
+        }
+      })
       .populate("hospitalId", "name");
 
     res.json({ success: true, prescription: updatedPrescription });
@@ -153,8 +206,16 @@ router.delete("/:id", auth, authorize("doctor"), async (req, res) => {
         .json({ success: false, message: "Prescription not found" });
     }
 
+    // Find the doctor record for this user
+    const doctor = await Doctor.findOne({ userId: req.user._id });
+    if (!doctor) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Doctor profile not found" });
+    }
+
     // Check if doctor owns this prescription
-    if (prescription.doctorId.toString() !== req.user.doctorId) {
+    if (prescription.doctorId.toString() !== doctor._id.toString()) {
       return res.status(403).json({ success: false, message: "Access denied" });
     }
 
@@ -169,15 +230,23 @@ router.delete("/:id", auth, authorize("doctor"), async (req, res) => {
 // Get prescription statistics
 router.get("/stats/doctor", auth, authorize("doctor"), async (req, res) => {
   try {
+    // Find the doctor record for this user
+    const doctor = await Doctor.findOne({ userId: req.user._id });
+    if (!doctor) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Doctor profile not found" });
+    }
+
     const totalPrescriptions = await Prescription.countDocuments({
-      doctorId: req.user.doctorId
+      doctorId: doctor._id
     });
     const activePrescriptions = await Prescription.countDocuments({
-      doctorId: req.user.doctorId,
+      doctorId: doctor._id,
       status: "active"
     });
     const thisMonthPrescriptions = await Prescription.countDocuments({
-      doctorId: req.user.doctorId,
+      doctorId: doctor._id,
       prescriptionDate: {
         $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
       }
@@ -197,5 +266,3 @@ router.get("/stats/doctor", auth, authorize("doctor"), async (req, res) => {
 });
 
 module.exports = router;
-
-
