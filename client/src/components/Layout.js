@@ -13,7 +13,8 @@ import {
   Shield,
   LogOut,
   Menu,
-  X
+  X,
+  Camera
 } from "lucide-react";
 
 const Layout = ({ children }) => {
@@ -30,6 +31,11 @@ const Layout = ({ children }) => {
     { name: "Diagnoses", href: "/diagnoses", icon: FileText },
     { name: "Reminders", href: "/reminders", icon: Bell },
     { name: "Medicines", href: "/medicines", icon: Pill },
+    {
+      name: "Prescription Scanner",
+      href: "/prescription-scanner",
+      icon: Camera
+    },
     ...(user?.role === "admin"
       ? [{ name: "Admin", href: "/admin", icon: Shield }]
       : []),
@@ -37,9 +43,10 @@ const Layout = ({ children }) => {
   ];
 
   // Filter navigation items based on approval status
-  const filteredNavigation = user?.approvalStatus === "approved" 
-    ? navigation 
-    : [{ name: "Profile", href: "/profile", icon: User }];
+  const filteredNavigation =
+    user?.approvalStatus === "approved"
+      ? navigation
+      : [{ name: "Profile", href: "/profile", icon: User }];
 
   const handleLogout = () => {
     logout();
@@ -139,7 +146,9 @@ const Layout = ({ children }) => {
                 </p>
                 <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
                 {user?.approvalStatus !== "approved" && (
-                  <p className="text-xs text-yellow-600 capitalize">{user?.approvalStatus}</p>
+                  <p className="text-xs text-yellow-600 capitalize">
+                    {user?.approvalStatus}
+                  </p>
                 )}
               </div>
             </div>

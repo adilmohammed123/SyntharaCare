@@ -13,15 +13,6 @@ const Register = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // Fetch approved hospitals for doctor registration
-  const { data: hospitalsData } = useQuery(
-    ["approved-hospitals"],
-    () => hospitalsAPI.getAll({ approvalStatus: "approved", limit: 100 }),
-    {
-      enabled: false // Only fetch when needed
-    }
-  );
-
   const {
     register,
     handleSubmit,
@@ -30,6 +21,15 @@ const Register = () => {
   } = useForm();
 
   const selectedRole = watch("role");
+
+  // Fetch approved hospitals for doctor registration
+  const { data: hospitalsData, isLoading: hospitalsLoading } = useQuery(
+    ["approved-hospitals"],
+    () => hospitalsAPI.getAll({ approvalStatus: "approved", limit: 100 }),
+    {
+      enabled: selectedRole === "doctor" // Enable when doctor role is selected
+    }
+  );
 
   const password = watch("password");
 
@@ -258,10 +258,7 @@ const Register = () => {
                   required: "Role is required"
                 })}
                 onChange={(e) => {
-                  // Enable hospital query when doctor is selected
-                  if (e.target.value === "doctor") {
-                    queryClient.prefetchQuery(["approved-hospitals"]);
-                  }
+                  // The query will automatically enable/disable based on selectedRole
                 }}
               >
                 <option value="">Select your role</option>
@@ -291,6 +288,7 @@ const Register = () => {
                     className={`input-field ${
                       errors.hospitalId ? "border-red-500" : ""
                     }`}
+                    disabled={hospitalsLoading}
                     {...register("hospitalId", {
                       required:
                         selectedRole === "doctor"
@@ -298,7 +296,11 @@ const Register = () => {
                           : false
                     })}
                   >
-                    <option value="">Select a hospital</option>
+                    <option value="">
+                      {hospitalsLoading
+                        ? "Loading hospitals..."
+                        : "Select a hospital"}
+                    </option>
                     {hospitalsData?.hospitals?.map((hospital) => (
                       <option key={hospital._id} value={hospital._id}>
                         {hospital.name} - {hospital.address.city},{" "}
@@ -306,6 +308,18 @@ const Register = () => {
                       </option>
                     ))}
                   </select>
+                  {hospitalsLoading && (
+                    <p className="mt-1 text-sm text-gray-600">
+                      Loading approved hospitals...
+                    </p>
+                  )}
+                  {!hospitalsLoading &&
+                    hospitalsData?.hospitals?.length === 0 && (
+                      <p className="mt-1 text-sm text-yellow-600">
+                        No approved hospitals available. Please contact an
+                        administrator.
+                      </p>
+                    )}
                   {errors.hospitalId && (
                     <p className="mt-1 text-sm text-red-600">
                       {errors.hospitalId.message}

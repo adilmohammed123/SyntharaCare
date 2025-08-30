@@ -156,3 +156,17 @@ export const adminAPI = {
   approveHospitalDoctor: (id, approvalData) =>
     api.put(`/api/admin/hospital/doctors/${id}/approve`, approvalData)
 };
+
+export const prescriptionsAPI = {
+  // Patient endpoints
+  getPatientPrescriptions: () => api.get("/api/prescriptions/patient"),
+  // Doctor endpoints
+  getDoctorPrescriptions: () => api.get("/api/prescriptions/doctor"),
+  getPrescriptionById: (id) => api.get(`/api/prescriptions/${id}`),
+  createPrescription: (prescriptionData) =>
+    api.post("/api/prescriptions", prescriptionData),
+  updatePrescription: (id, prescriptionData) =>
+    api.put(`/api/prescriptions/${id}`, prescriptionData),
+  deletePrescription: (id) => api.delete(`/api/prescriptions/${id}`),
+  getDoctorStats: () => api.get("/api/prescriptions/stats/doctor")
+};

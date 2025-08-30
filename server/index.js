@@ -54,6 +54,7 @@ app.use("/api/appointments", require("./routes/appointments"));
 app.use("/api/diagnoses", require("./routes/diagnoses"));
 app.use("/api/medicines", require("./routes/medicines"));
 app.use("/api/reminders", require("./routes/reminders"));
+app.use("/api/prescriptions", require("./routes/prescriptions"));
 
 // Socket.io for real-time features
 io.on("connection", (socket) => {

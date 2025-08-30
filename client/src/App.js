@@ -13,6 +13,7 @@ import Profile from "./pages/Profile";
 import Diagnoses from "./pages/Diagnoses";
 import Reminders from "./pages/Reminders";
 import Medicines from "./pages/Medicines";
+import PrescriptionScanner from "./pages/PrescriptionScanner";
 import PendingApproval from "./pages/PendingApproval";
 
 function AppContent() {
@@ -52,6 +53,7 @@ function AppContent() {
         <Route path="/diagnoses" element={<Diagnoses />} />
         <Route path="/reminders" element={<Reminders />} />
         <Route path="/medicines" element={<Medicines />} />
+        <Route path="/prescription-scanner" element={<PrescriptionScanner />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
