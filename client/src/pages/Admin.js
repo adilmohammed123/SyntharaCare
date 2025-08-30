@@ -24,10 +24,16 @@ const Admin = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("dashboard");
 
+  // Check if user is hospital admin
+  const isHospitalAdmin = user?.role === "organization_admin";
+
   // Fetch admin dashboard stats
   const { data: dashboardData } = useQuery(
     ["admin-dashboard"],
-    () => adminAPI.getDashboard(),
+    () =>
+      isHospitalAdmin
+        ? adminAPI.getHospitalDashboard()
+        : adminAPI.getDashboard(),
     {
       refetchInterval: 30000 // Refetch every 30 seconds
     }
@@ -54,7 +60,10 @@ const Admin = () => {
   // Fetch pending doctors
   const { data: pendingDoctors, isLoading: doctorsLoading } = useQuery(
     ["pending-doctors"],
-    () => adminAPI.getPendingDoctors(),
+    () =>
+      isHospitalAdmin
+        ? adminAPI.getHospitalPendingDoctors()
+        : adminAPI.getPendingDoctors(),
     {
       refetchInterval: 30000
     }
@@ -99,7 +108,12 @@ const Admin = () => {
   // Approve doctor mutation
   const approveDoctorMutation = useMutation(
     ({ doctorId, approvalStatus, approvalNotes }) =>
-      adminAPI.approveDoctor(doctorId, { approvalStatus, approvalNotes }),
+      isHospitalAdmin
+        ? adminAPI.approveHospitalDoctor(doctorId, {
+            approvalStatus,
+            approvalNotes
+          })
+        : adminAPI.approveDoctor(doctorId, { approvalStatus, approvalNotes }),
     {
       onSuccess: () => {
         toast.success("Doctor approval updated successfully");
@@ -166,12 +180,17 @@ const Admin = () => {
     }
   };
 
-  const tabs = [
-    { id: "dashboard", name: "Dashboard", icon: Activity },
-    { id: "users", name: "Pending Users", icon: Users },
-    { id: "hospitals", name: "Pending Hospitals", icon: Building2 },
-    { id: "doctors", name: "Pending Doctors", icon: User }
-  ];
+  const tabs = isHospitalAdmin
+    ? [
+        { id: "dashboard", name: "Dashboard", icon: Activity },
+        { id: "doctors", name: "Pending Doctors", icon: User }
+      ]
+    : [
+        { id: "dashboard", name: "Dashboard", icon: Activity },
+        { id: "users", name: "Pending Users", icon: Users },
+        { id: "hospitals", name: "Pending Hospitals", icon: Building2 },
+        { id: "doctors", name: "Pending Doctors", icon: User }
+      ];
 
   return (
     <div className="space-y-6">
@@ -179,15 +198,19 @@ const Admin = () => {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Admin Panel</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {isHospitalAdmin ? "Hospital Admin Panel" : "Admin Panel"}
+            </h1>
             <p className="text-gray-600 mt-2">
-              Manage user approvals, hospitals, and system administration.
+              {isHospitalAdmin
+                ? "Manage doctor approvals and hospital administration."
+                : "Manage user approvals, hospitals, and system administration."}
             </p>
           </div>
           <div className="flex items-center space-x-2">
             <Shield className="h-6 w-6 text-primary-600" />
             <span className="text-sm font-medium text-gray-700">
-              Administrator
+              {isHospitalAdmin ? "Hospital Administrator" : "Administrator"}
             </span>
           </div>
         </div>
@@ -219,96 +242,160 @@ const Admin = () => {
           {activeTab === "dashboard" && (
             <div className="space-y-6">
               <h2 className="text-lg font-semibold text-gray-900">
-                System Overview
+                {isHospitalAdmin ? "Hospital Overview" : "System Overview"}
               </h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                  <div className="flex items-center">
-                    <Users className="h-8 w-8 text-blue-600" />
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-blue-600">
-                        Total Users
-                      </p>
-                      <p className="text-2xl font-bold text-blue-900">
-                        {dashboardData?.stats?.totalUsers || 0}
-                      </p>
+              {isHospitalAdmin ? (
+                // Hospital Admin Dashboard
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                    <div className="flex items-center">
+                      <Building2 className="h-8 w-8 text-blue-600" />
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-blue-600">
+                          Hospital
+                        </p>
+                        <p className="text-lg font-bold text-blue-900">
+                          {dashboardData?.stats?.hospitalName || "N/A"}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-                  <div className="flex items-center">
-                    <AlertCircle className="h-8 w-8 text-yellow-600" />
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-yellow-600">
-                        Pending Users
-                      </p>
-                      <p className="text-2xl font-bold text-yellow-900">
-                        {dashboardData?.stats?.pendingUsers || 0}
-                      </p>
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+                    <div className="flex items-center">
+                      <User className="h-8 w-8 text-green-600" />
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-green-600">
+                          Total Doctors
+                        </p>
+                        <p className="text-2xl font-bold text-green-900">
+                          {dashboardData?.stats?.totalDoctors || 0}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                  <div className="flex items-center">
-                    <Building2 className="h-8 w-8 text-green-600" />
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-green-600">
-                        Total Hospitals
-                      </p>
-                      <p className="text-2xl font-bold text-green-900">
-                        {dashboardData?.stats?.totalHospitals || 0}
-                      </p>
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                    <div className="flex items-center">
+                      <AlertCircle className="h-8 w-8 text-yellow-600" />
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-yellow-600">
+                          Pending Doctors
+                        </p>
+                        <p className="text-2xl font-bold text-yellow-900">
+                          {dashboardData?.stats?.pendingDoctors || 0}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
-                  <div className="flex items-center">
-                    <User className="h-8 w-8 text-purple-600" />
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-purple-600">
-                        Total Doctors
-                      </p>
-                      <p className="text-2xl font-bold text-purple-900">
-                        {dashboardData?.stats?.totalDoctors || 0}
-                      </p>
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
+                    <div className="flex items-center">
+                      <Calendar className="h-8 w-8 text-purple-600" />
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-purple-600">
+                          Total Appointments
+                        </p>
+                        <p className="text-2xl font-bold text-purple-900">
+                          {dashboardData?.stats?.totalAppointments || 0}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                // System Admin Dashboard
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                    <div className="flex items-center">
+                      <Users className="h-8 w-8 text-blue-600" />
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-blue-600">
+                          Total Users
+                        </p>
+                        <p className="text-2xl font-bold text-blue-900">
+                          {dashboardData?.stats?.totalUsers || 0}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-                  <div className="flex items-center">
-                    <Building2 className="h-8 w-8 text-red-600" />
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-red-600">
-                        Pending Hospitals
-                      </p>
-                      <p className="text-2xl font-bold text-red-900">
-                        {dashboardData?.stats?.pendingHospitals || 0}
-                      </p>
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                    <div className="flex items-center">
+                      <AlertCircle className="h-8 w-8 text-yellow-600" />
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-yellow-600">
+                          Pending Users
+                        </p>
+                        <p className="text-2xl font-bold text-yellow-900">
+                          {dashboardData?.stats?.pendingUsers || 0}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
-                  <div className="flex items-center">
-                    <User className="h-8 w-8 text-orange-600" />
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-orange-600">
-                        Pending Doctors
-                      </p>
-                      <p className="text-2xl font-bold text-orange-900">
-                        {dashboardData?.stats?.pendingDoctors || 0}
-                      </p>
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+                    <div className="flex items-center">
+                      <Building2 className="h-8 w-8 text-green-600" />
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-green-600">
+                          Total Hospitals
+                        </p>
+                        <p className="text-2xl font-bold text-green-900">
+                          {dashboardData?.stats?.totalHospitals || 0}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
+                    <div className="flex items-center">
+                      <User className="h-8 w-8 text-purple-600" />
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-purple-600">
+                          Total Doctors
+                        </p>
+                        <p className="text-2xl font-bold text-purple-900">
+                          {dashboardData?.stats?.totalDoctors || 0}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
+
+              {!isHospitalAdmin && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                    <div className="flex items-center">
+                      <Building2 className="h-8 w-8 text-red-600" />
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-red-600">
+                          Pending Hospitals
+                        </p>
+                        <p className="text-2xl font-bold text-red-900">
+                          {dashboardData?.stats?.pendingHospitals || 0}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
+                    <div className="flex items-center">
+                      <User className="h-8 w-8 text-orange-600" />
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-orange-600">
+                          Pending Doctors
+                        </p>
+                        <p className="text-2xl font-bold text-orange-900">
+                          {dashboardData?.stats?.pendingDoctors || 0}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -504,7 +591,9 @@ const Admin = () => {
           {activeTab === "doctors" && (
             <div className="space-y-6">
               <h2 className="text-lg font-semibold text-gray-900">
-                Pending Doctor Approvals
+                {isHospitalAdmin
+                  ? "Pending Doctor Approvals (Your Hospital)"
+                  : "Pending Doctor Approvals"}
               </h2>
 
               {doctorsLoading ? (
@@ -521,7 +610,9 @@ const Admin = () => {
                     No pending doctors
                   </h3>
                   <p className="text-gray-600">
-                    All doctor approvals are up to date.
+                    {isHospitalAdmin
+                      ? "All doctor approvals for your hospital are up to date."
+                      : "All doctor approvals are up to date."}
                   </p>
                 </div>
               ) : (

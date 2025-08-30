@@ -14,7 +14,7 @@ router.get("/pending-users", auth, authorize("admin"), async (req, res) => {
   try {
     const pendingUsers = await User.find({
       approvalStatus: "pending",
-      role: { $in: ["organization_admin", "admin"] }
+      role: { $in: ["organization_admin", "admin", "doctor"] }
     })
       .select("-password")
       .sort({ createdAt: 1 });
@@ -25,6 +25,175 @@ router.get("/pending-users", auth, authorize("admin"), async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+// @route   GET /api/admin/hospital/pending-doctors
+// @desc    Get pending doctor approvals for hospital admin's hospital
+// @access  Private (Hospital Admin)
+router.get(
+  "/hospital/pending-doctors",
+  auth,
+  authorize("organization_admin"),
+  async (req, res) => {
+    try {
+      // Find the hospital where this admin works
+      const hospital = await Hospital.findOne({
+        organizationAdmin: req.user._id
+      });
+      if (!hospital) {
+        return res
+          .status(404)
+          .json({ message: "Hospital not found for this admin" });
+      }
+
+      // Get pending doctors for this hospital
+      const pendingDoctors = await Doctor.find({
+        hospitalId: hospital._id,
+        approvalStatus: "pending"
+      })
+        .populate("userId", "profile.firstName profile.lastName email")
+        .populate("hospitalId", "name")
+        .sort({ createdAt: 1 });
+
+      res.json(pendingDoctors);
+    } catch (error) {
+      console.error("Get hospital pending doctors error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+);
+
+// @route   PUT /api/admin/hospital/doctors/:id/approve
+// @desc    Approve or reject doctor at hospital (hospital admin only)
+// @access  Private (Hospital Admin)
+router.put(
+  "/hospital/doctors/:id/approve",
+  auth,
+  authorize("organization_admin"),
+  [
+    body("approvalStatus")
+      .isIn(["approved", "rejected"])
+      .withMessage("Invalid approval status"),
+    body("approvalNotes").optional().isLength({ max: 1000 })
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      // Find the hospital where this admin works
+      const hospital = await Hospital.findOne({
+        organizationAdmin: req.user._id
+      });
+      if (!hospital) {
+        return res
+          .status(404)
+          .json({ message: "Hospital not found for this admin" });
+      }
+
+      const doctor = await Doctor.findById(req.params.id);
+      if (!doctor) {
+        return res.status(404).json({ message: "Doctor not found" });
+      }
+
+      // Verify the doctor belongs to this hospital
+      if (doctor.hospitalId.toString() !== hospital._id.toString()) {
+        return res
+          .status(403)
+          .json({ message: "Not authorized to approve this doctor" });
+      }
+
+      if (doctor.approvalStatus !== "pending") {
+        return res
+          .status(400)
+          .json({ message: "Doctor is not pending approval" });
+      }
+
+      const updateData = {
+        approvalStatus: req.body.approvalStatus,
+        approvedBy: req.user._id,
+        approvedAt: new Date()
+      };
+
+      if (req.body.approvalNotes) {
+        updateData.approvalNotes = req.body.approvalNotes;
+      }
+
+      const updatedDoctor = await Doctor.findByIdAndUpdate(
+        req.params.id,
+        updateData,
+        { new: true, runValidators: true }
+      )
+        .populate("userId", "profile.firstName profile.lastName email")
+        .populate("hospitalId", "name")
+        .populate("approvedBy", "profile.firstName profile.lastName");
+
+      // If approving the doctor profile, also approve the user
+      if (req.body.approvalStatus === "approved") {
+        await User.findByIdAndUpdate(doctor.userId, {
+          approvalStatus: "approved",
+          approvedBy: req.user._id,
+          approvedAt: new Date()
+        });
+      }
+
+      res.json({
+        message: `Doctor ${req.body.approvalStatus} successfully`,
+        doctor: updatedDoctor
+      });
+    } catch (error) {
+      console.error("Approve hospital doctor error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+);
+
+// @route   GET /api/admin/hospital/dashboard
+// @desc    Get hospital admin dashboard stats
+// @access  Private (Hospital Admin)
+router.get(
+  "/hospital/dashboard",
+  auth,
+  authorize("organization_admin"),
+  async (req, res) => {
+    try {
+      // Find the hospital where this admin works
+      const hospital = await Hospital.findOne({
+        organizationAdmin: req.user._id
+      });
+      if (!hospital) {
+        return res
+          .status(404)
+          .json({ message: "Hospital not found for this admin" });
+      }
+
+      const [totalDoctors, pendingDoctors, totalAppointments] =
+        await Promise.all([
+          Doctor.countDocuments({ hospitalId: hospital._id }),
+          Doctor.countDocuments({
+            hospitalId: hospital._id,
+            approvalStatus: "pending"
+          }),
+          require("../models/Appointment").countDocuments({
+            hospitalId: hospital._id
+          })
+        ]);
+
+      res.json({
+        stats: {
+          hospitalName: hospital.name,
+          totalDoctors,
+          pendingDoctors,
+          totalAppointments
+        }
+      });
+    } catch (error) {
+      console.error("Get hospital dashboard error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+);
 
 // @route   PUT /api/admin/users/:id/approve
 // @desc    Approve or reject user (admin only)
@@ -74,6 +243,20 @@ router.put(
       )
         .select("-password")
         .populate("approvedBy", "profile.firstName profile.lastName");
+
+      // If approving a doctor, also approve their doctor profile
+      if (user.role === "doctor" && req.body.approvalStatus === "approved") {
+        const Doctor = require("../models/Doctor");
+        const doctor = await Doctor.findOne({ userId: user._id });
+
+        if (doctor) {
+          await Doctor.findByIdAndUpdate(doctor._id, {
+            approvalStatus: "approved",
+            approvedBy: req.user._id,
+            approvedAt: new Date()
+          });
+        }
+      }
 
       res.json({
         message: `User ${req.body.approvalStatus} successfully`,
@@ -181,7 +364,7 @@ router.get("/dashboard", auth, authorize("admin"), async (req, res) => {
       User.countDocuments(),
       User.countDocuments({
         approvalStatus: "pending",
-        role: { $in: ["organization_admin", "admin"] }
+        role: { $in: ["organization_admin", "admin", "doctor"] }
       }),
       Hospital.countDocuments(),
       Hospital.countDocuments({ approvalStatus: "pending" }),

@@ -31,7 +31,13 @@ router.post(
     body("profile.firstName").notEmpty().trim(),
     body("profile.lastName").notEmpty().trim(),
     body("profile.phone").optional().isMobilePhone(),
-    body("profile.address").optional().isLength({ max: 500 })
+    body("profile.address").optional().isLength({ max: 500 }),
+    // Doctor-specific validation
+    body("hospitalId").optional().isMongoId(),
+    body("specialization").optional().isLength({ max: 100 }),
+    body("licenseNumber").optional().isLength({ max: 50 }),
+    body("experience").optional().isInt({ min: 0 }),
+    body("consultationFee").optional().isFloat({ min: 0 })
   ],
   async (req, res) => {
     try {
@@ -40,12 +46,33 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { email, password, role, profile } = req.body;
+      const {
+        email,
+        password,
+        role,
+        profile,
+        hospitalId,
+        specialization,
+        licenseNumber,
+        experience,
+        consultationFee
+      } = req.body;
 
       // Check if user already exists
       let user = await User.findOne({ email });
       if (user) {
         return res.status(400).json({ message: "User already exists" });
+      }
+
+      // Validate hospital exists for doctors
+      if (role === "doctor" && hospitalId) {
+        const Hospital = require("../models/Hospital");
+        const hospital = await Hospital.findById(hospitalId);
+        if (!hospital || hospital.approvalStatus !== "approved") {
+          return res
+            .status(400)
+            .json({ message: "Invalid or unapproved hospital" });
+        }
       }
 
       // Hash password
@@ -61,6 +88,65 @@ router.post(
       });
 
       await user.save();
+
+      // Create doctor profile if role is doctor
+      if (role === "doctor" && hospitalId) {
+        const Doctor = require("../models/Doctor");
+
+        // Check if license number is unique
+        const existingDoctor = await Doctor.findOne({ licenseNumber });
+        if (existingDoctor) {
+          // Delete the user we just created
+          await User.findByIdAndDelete(user._id);
+          return res
+            .status(400)
+            .json({ message: "License number already exists" });
+        }
+
+        const doctor = new Doctor({
+          userId: user._id,
+          hospitalId,
+          specialization: specialization || "General Medicine",
+          licenseNumber,
+          experience: experience || 0,
+          consultationFee: consultationFee || 50,
+          availability: [
+            {
+              day: "monday",
+              startTime: "09:00",
+              endTime: "17:00",
+              isAvailable: true
+            },
+            {
+              day: "tuesday",
+              startTime: "09:00",
+              endTime: "17:00",
+              isAvailable: true
+            },
+            {
+              day: "wednesday",
+              startTime: "09:00",
+              endTime: "17:00",
+              isAvailable: true
+            },
+            {
+              day: "thursday",
+              startTime: "09:00",
+              endTime: "17:00",
+              isAvailable: true
+            },
+            {
+              day: "friday",
+              startTime: "09:00",
+              endTime: "17:00",
+              isAvailable: true
+            }
+          ],
+          languages: ["English"]
+        });
+
+        await doctor.save();
+      }
 
       // Create JWT token
       const payload = {

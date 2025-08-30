@@ -148,5 +148,11 @@ export const adminAPI = {
   getPendingDoctors: () => api.get("/api/admin/pending-doctors"),
   approveDoctor: (id, approvalData) =>
     api.put(`/api/admin/doctors/${id}/approve`, approvalData),
-  getUsers: (params) => api.get("/api/admin/users", { params })
+  getUsers: (params) => api.get("/api/admin/users", { params }),
+  // Hospital admin endpoints
+  getHospitalDashboard: () => api.get("/api/admin/hospital/dashboard"),
+  getHospitalPendingDoctors: () =>
+    api.get("/api/admin/hospital/pending-doctors"),
+  approveHospitalDoctor: (id, approvalData) =>
+    api.put(`/api/admin/hospital/doctors/${id}/approve`, approvalData)
 };
