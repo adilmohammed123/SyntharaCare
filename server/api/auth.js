@@ -1,9 +1,9 @@
-const express = require('express');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const { body, validationResult } = require('express-validator');
-const { connectToDatabase } = require('./lib/db');
-const User = require('../models/User');
+const express = require("express");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const { body, validationResult } = require("express-validator");
+const { connectToDatabase } = require("./lib/db");
+const User = require("../models/User");
 
 const router = express.Router();
 
@@ -13,144 +13,153 @@ const withDB = async (req, res, next) => {
     await connectToDatabase();
     next();
   } catch (error) {
-    console.error('Database connection error:', error);
-    res.status(500).json({ message: 'Database connection failed' });
+    console.error("Database connection error:", error);
+    res.status(500).json({ message: "Database connection failed" });
   }
 };
 
 // @route   POST /api/auth/register
 // @desc    Register a new user
 // @access  Public
-router.post('/register', withDB, [
-  body('email').isEmail().normalizeEmail(),
-  body('password').isLength({ min: 6 }),
-  body('role').isIn(['patient', 'doctor', 'admin']),
-  body('profile.firstName').notEmpty().trim(),
-  body('profile.lastName').notEmpty().trim(),
-  body('profile.phone').optional().isMobilePhone(),
-  body('profile.address').optional().isLength({ max: 500 })
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
-    const { email, password, role, profile } = req.body;
-
-    // Check if user already exists
-    let user = await User.findOne({ email });
-    if (user) {
-      return res.status(400).json({ message: 'User already exists' });
-    }
-
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Create user
-    user = new User({
-      email,
-      password: hashedPassword,
-      role,
-      profile
-    });
-
-    await user.save();
-
-    // Create JWT token
-    const payload = {
-      userId: user._id,
-      role: user.role
-    };
-
-    const token = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRE
-    });
-
-    res.status(201).json({
-      token,
-      user: {
-        _id: user._id,
-        email: user.email,
-        role: user.role,
-        profile: user.profile
+router.post(
+  "/register",
+  withDB,
+  [
+    body("email").isEmail().normalizeEmail(),
+    body("password").isLength({ min: 6 }),
+    body("role").isIn(["patient", "doctor", "admin", "organization_admin"]),
+    body("profile.firstName").notEmpty().trim(),
+    body("profile.lastName").notEmpty().trim(),
+    body("profile.phone").optional().isMobilePhone(),
+    body("profile.address").optional().isLength({ max: 500 })
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
       }
-    });
-  } catch (error) {
-    console.error('Register error:', error);
-    res.status(500).json({ message: 'Server error' });
+
+      const { email, password, role, profile } = req.body;
+
+      // Check if user already exists
+      let user = await User.findOne({ email });
+      if (user) {
+        return res.status(400).json({ message: "User already exists" });
+      }
+
+      // Hash password
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+
+      // Create user
+      user = new User({
+        email,
+        password: hashedPassword,
+        role,
+        profile
+      });
+
+      await user.save();
+
+      // Create JWT token
+      const payload = {
+        userId: user._id,
+        role: user.role
+      };
+
+      const token = jwt.sign(payload, process.env.JWT_SECRET, {
+        expiresIn: process.env.JWT_EXPIRE
+      });
+
+      res.status(201).json({
+        token,
+        user: {
+          _id: user._id,
+          email: user.email,
+          role: user.role,
+          profile: user.profile
+        }
+      });
+    } catch (error) {
+      console.error("Register error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
   }
-});
+);
 
 // @route   POST /api/auth/login
 // @desc    Authenticate user & get token
 // @access  Public
-router.post('/login', withDB, [
-  body('email').isEmail().normalizeEmail(),
-  body('password').exists()
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
-    const { email, password } = req.body;
-
-    // Check if user exists
-    const user = await User.findOne({ email }).select('+password');
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid credentials' });
-    }
-
-    // Check password
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid credentials' });
-    }
-
-    // Create JWT token
-    const payload = {
-      userId: user._id,
-      role: user.role
-    };
-
-    const token = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRE
-    });
-
-    res.json({
-      token,
-      user: {
-        _id: user._id,
-        email: user.email,
-        role: user.role,
-        profile: user.profile
+router.post(
+  "/login",
+  withDB,
+  [body("email").isEmail().normalizeEmail(), body("password").exists()],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
       }
-    });
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error' });
+
+      const { email, password } = req.body;
+
+      // Check if user exists
+      const user = await User.findOne({ email }).select("+password");
+      if (!user) {
+        return res.status(400).json({ message: "Invalid credentials" });
+      }
+
+      // Check password
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+        return res.status(400).json({ message: "Invalid credentials" });
+      }
+
+      // Create JWT token
+      const payload = {
+        userId: user._id,
+        role: user.role
+      };
+
+      const token = jwt.sign(payload, process.env.JWT_SECRET, {
+        expiresIn: process.env.JWT_EXPIRE
+      });
+
+      res.json({
+        token,
+        user: {
+          _id: user._id,
+          email: user.email,
+          role: user.role,
+          profile: user.profile
+        }
+      });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
   }
-});
+);
 
 // @route   GET /api/auth/me
 // @desc    Get current user
 // @access  Private
-router.get('/me', withDB, async (req, res) => {
+router.get("/me", withDB, async (req, res) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-    
+    const token = req.header("Authorization")?.replace("Bearer ", "");
+
     if (!token) {
-      return res.status(401).json({ message: 'No token, authorization denied' });
+      return res
+        .status(401)
+        .json({ message: "No token, authorization denied" });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.userId);
 
     if (!user) {
-      return res.status(401).json({ message: 'Token is not valid' });
+      return res.status(401).json({ message: "Token is not valid" });
     }
 
     res.json({
@@ -160,104 +169,120 @@ router.get('/me', withDB, async (req, res) => {
       profile: user.profile
     });
   } catch (error) {
-    console.error('Get user error:', error);
-    res.status(401).json({ message: 'Token is not valid' });
+    console.error("Get user error:", error);
+    res.status(401).json({ message: "Token is not valid" });
   }
 });
 
 // @route   PUT /api/auth/profile
 // @desc    Update user profile
 // @access  Private
-router.put('/profile', withDB, [
-  body('profile.firstName').optional().notEmpty().trim(),
-  body('profile.lastName').optional().notEmpty().trim(),
-  body('profile.phone').optional().isMobilePhone(),
-  body('profile.address').optional().isLength({ max: 500 })
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-    
-    if (!token) {
-      return res.status(401).json({ message: 'No token, authorization denied' });
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId);
-
-    if (!user) {
-      return res.status(401).json({ message: 'Token is not valid' });
-    }
-
-    // Update profile
-    if (req.body.profile) {
-      user.profile = { ...user.profile, ...req.body.profile };
-    }
-
-    await user.save();
-
-    res.json({
-      message: 'Profile updated successfully',
-      user: {
-        _id: user._id,
-        email: user.email,
-        role: user.role,
-        profile: user.profile
+router.put(
+  "/profile",
+  withDB,
+  [
+    body("profile.firstName").optional().notEmpty().trim(),
+    body("profile.lastName").optional().notEmpty().trim(),
+    body("profile.phone").optional().isMobilePhone(),
+    body("profile.address").optional().isLength({ max: 500 })
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
       }
-    });
-  } catch (error) {
-    console.error('Update profile error:', error);
-    res.status(500).json({ message: 'Server error' });
+
+      const token = req.header("Authorization")?.replace("Bearer ", "");
+
+      if (!token) {
+        return res
+          .status(401)
+          .json({ message: "No token, authorization denied" });
+      }
+
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await User.findById(decoded.userId);
+
+      if (!user) {
+        return res.status(401).json({ message: "Token is not valid" });
+      }
+
+      // Update profile
+      if (req.body.profile) {
+        user.profile = { ...user.profile, ...req.body.profile };
+      }
+
+      await user.save();
+
+      res.json({
+        message: "Profile updated successfully",
+        user: {
+          _id: user._id,
+          email: user.email,
+          role: user.role,
+          profile: user.profile
+        }
+      });
+    } catch (error) {
+      console.error("Update profile error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
   }
-});
+);
 
 // @route   PUT /api/auth/password
 // @desc    Update user password
 // @access  Private
-router.put('/password', withDB, [
-  body('currentPassword').exists(),
-  body('newPassword').isLength({ min: 6 })
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+router.put(
+  "/password",
+  withDB,
+  [body("currentPassword").exists(), body("newPassword").isLength({ min: 6 })],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const token = req.header("Authorization")?.replace("Bearer ", "");
+
+      if (!token) {
+        return res
+          .status(401)
+          .json({ message: "No token, authorization denied" });
+      }
+
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await User.findById(decoded.userId).select("+password");
+
+      if (!user) {
+        return res.status(401).json({ message: "Token is not valid" });
+      }
+
+      // Check current password
+      const isMatch = await bcrypt.compare(
+        req.body.currentPassword,
+        user.password
+      );
+      if (!isMatch) {
+        return res
+          .status(400)
+          .json({ message: "Current password is incorrect" });
+      }
+
+      // Hash new password
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(req.body.newPassword, salt);
+
+      await user.save();
+
+      res.json({ message: "Password updated successfully" });
+    } catch (error) {
+      console.error("Update password error:", error);
+      res.status(500).json({ message: "Server error" });
     }
-
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-    
-    if (!token) {
-      return res.status(401).json({ message: 'No token, authorization denied' });
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId).select('+password');
-
-    if (!user) {
-      return res.status(401).json({ message: 'Token is not valid' });
-    }
-
-    // Check current password
-    const isMatch = await bcrypt.compare(req.body.currentPassword, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: 'Current password is incorrect' });
-    }
-
-    // Hash new password
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(req.body.newPassword, salt);
-
-    await user.save();
-
-    res.json({ message: 'Password updated successfully' });
-  } catch (error) {
-    console.error('Update password error:', error);
-    res.status(500).json({ message: 'Server error' });
   }
-});
+);
 
 module.exports = router;

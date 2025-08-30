@@ -24,7 +24,7 @@ router.post(
     body("password").isLength({ min: 6 }),
     body("profile.firstName").notEmpty().trim(),
     body("profile.lastName").notEmpty().trim(),
-    body("role").isIn(["patient", "doctor"])
+    body("role").isIn(["patient", "doctor", "admin", "organization_admin"])
   ],
   async (req, res) => {
     try {
