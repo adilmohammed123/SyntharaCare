@@ -3,9 +3,10 @@ const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 const helmet = require("helmet");
 const compression = require("compression");
+const { connectToDatabase } = require("./lib/db");
 
 // Import routes
-const authRoutes = require("../server/routes/auth");
+const authRoutes = require("../server/api/auth");
 const patientsRoutes = require("../server/routes/patients");
 const doctorsRoutes = require("../server/routes/doctors");
 const appointmentsRoutes = require("../server/routes/appointments");
@@ -44,6 +45,17 @@ app.use(limiter);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
+// Database connection middleware for all routes
+app.use(async (req, res, next) => {
+  try {
+    await connectToDatabase();
+    next();
+  } catch (error) {
+    console.error("Database connection error:", error);
+    res.status(500).json({ message: "Database connection failed" });
+  }
+});
+
 // Health check endpoint
 app.get("/api/health", (req, res) => {
   res.json({
@@ -51,6 +63,36 @@ app.get("/api/health", (req, res) => {
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV
   });
+});
+
+// Admin creation endpoint (for initial setup)
+app.post("/api/setup-admin", async (req, res) => {
+  try {
+    const { createAdminUser } = require("./createAdmin");
+    const result = await createAdminUser();
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: result.message,
+        email: result.email,
+        password: result.password
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: result.message,
+        error: result.error
+      });
+    }
+  } catch (error) {
+    console.error("Setup admin error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to setup admin user",
+      error: error.message
+    });
+  }
 });
 
 // API routes
