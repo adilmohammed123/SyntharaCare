@@ -301,9 +301,17 @@ const Doctors = () => {
                     {doctor.specialization}
                   </p>
                   {doctor.hospitalId && (
-                    <p className="text-xs text-gray-500">
-                      {doctor.hospitalId.name}
-                    </p>
+                    <div className="flex items-center space-x-1 mt-1">
+                      <Building2 className="h-3 w-3 text-gray-400" />
+                      <p className="text-sm text-gray-600 font-medium">
+                        {doctor.hospitalId.name}
+                      </p>
+                      {doctor.hospitalId.address && (
+                        <span className="text-xs text-gray-500">
+                          • {doctor.hospitalId.address.city}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -364,19 +372,33 @@ const Doctors = () => {
                 </div>
               )}
 
-              {/* Action Button */}
-              {user?.role === "patient" && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // Navigate to appointments page with doctor pre-selected
-                    window.location.href = `/appointments?doctor=${doctor._id}`;
-                  }}
-                  className="w-full btn-primary"
-                >
-                  Book Appointment
-                </button>
-              )}
+              {/* Action Buttons */}
+              <div className="flex space-x-2">
+                {doctor.hospitalId && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Navigate to hospitals page with this hospital selected
+                      window.location.href = `/hospitals?hospitalId=${doctor.hospitalId._id}`;
+                    }}
+                    className="flex-1 btn-secondary text-sm"
+                  >
+                    View Hospital
+                  </button>
+                )}
+                {user?.role === "patient" && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Navigate to appointments page with doctor pre-selected
+                      window.location.href = `/appointments?doctor=${doctor._id}`;
+                    }}
+                    className="flex-1 btn-primary text-sm"
+                  >
+                    Book Appointment
+                  </button>
+                )}
+              </div>
             </div>
           ))
         )}

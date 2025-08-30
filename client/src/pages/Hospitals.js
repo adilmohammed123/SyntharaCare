@@ -193,6 +193,24 @@ const Hospitals = () => {
             <p className="text-gray-600 mt-2">
               Browse hospitals and their facilities.
             </p>
+            {hospitalsData && (
+              <div className="flex items-center space-x-4 mt-3 text-sm text-gray-600">
+                <span className="flex items-center space-x-1">
+                  <Building2 className="h-4 w-4" />
+                  <span>{hospitalsData.hospitals?.length || 0} Hospitals</span>
+                </span>
+                <span className="flex items-center space-x-1">
+                  <Users className="h-4 w-4" />
+                  <span>
+                    {hospitalsData.hospitals?.reduce(
+                      (total, hospital) => total + (hospital.doctorCount || 0),
+                      0
+                    )}{" "}
+                    Total Doctors
+                  </span>
+                </span>
+              </div>
+            )}
           </div>
           {user?.role === "organization_admin" &&
             user?.approvalStatus === "approved" && (
@@ -1153,9 +1171,22 @@ const HospitalDetailsModal = ({ hospital, onClose, user }) => {
 
             {/* Doctors */}
             <div>
-              <h4 className="font-medium text-gray-900 mb-2">
-                Doctors ({doctors.length})
-              </h4>
+              <div className="flex justify-between items-center mb-2">
+                <h4 className="font-medium text-gray-900">
+                  Doctors ({doctors.length})
+                </h4>
+                {doctors.length > 0 && (
+                  <button
+                    onClick={() => {
+                      onClose();
+                      window.location.href = `/doctors?hospitalId=${hospital._id}`;
+                    }}
+                    className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                  >
+                    View All Doctors →
+                  </button>
+                )}
+              </div>
               {loadingDoctors ? (
                 <div className="text-gray-600">Loading doctors...</div>
               ) : doctors.length > 0 ? (
