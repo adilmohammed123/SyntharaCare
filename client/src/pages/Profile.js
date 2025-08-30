@@ -45,7 +45,7 @@ const Profile = () => {
     {
       onSuccess: (response) => {
         toast.success('Profile updated successfully!');
-        updateUser(response.user);
+        updateUser(response);
         setIsEditing(false);
         queryClient.invalidateQueries('user');
       },
@@ -109,6 +109,14 @@ const Profile = () => {
             <p className="text-gray-600 mt-2">
               Manage your account information and settings.
             </p>
+            {user?.approvalStatus !== "approved" && (
+              <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800">
+                  <strong>Note:</strong> Your account is currently {user?.approvalStatus}. 
+                  You can still update your profile while waiting for approval.
+                </p>
+              </div>
+            )}
           </div>
           {!isEditing && (
             <button
@@ -314,10 +322,26 @@ const Profile = () => {
           <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
             <div>
               <h3 className="text-sm font-medium text-gray-900">Account Status</h3>
-              <p className="text-sm text-gray-600">Your account is active</p>
+              <p className="text-sm text-gray-600">
+                {user?.approvalStatus === "approved" 
+                  ? "Your account is active" 
+                  : user?.approvalStatus === "rejected"
+                  ? "Your account has been rejected"
+                  : "Your account is pending approval"}
+              </p>
             </div>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-              Active
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+              user?.approvalStatus === "approved"
+                ? "bg-green-100 text-green-800"
+                : user?.approvalStatus === "rejected"
+                ? "bg-red-100 text-red-800"
+                : "bg-yellow-100 text-yellow-800"
+            }`}>
+              {user?.approvalStatus === "approved" 
+                ? "Approved" 
+                : user?.approvalStatus === "rejected"
+                ? "Rejected"
+                : "Pending"}
             </span>
           </div>
 

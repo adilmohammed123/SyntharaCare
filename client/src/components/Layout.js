@@ -36,6 +36,11 @@ const Layout = ({ children }) => {
     { name: "Profile", href: "/profile", icon: User }
   ];
 
+  // Filter navigation items based on approval status
+  const filteredNavigation = user?.approvalStatus === "approved" 
+    ? navigation 
+    : [{ name: "Profile", href: "/profile", icon: User }];
+
   const handleLogout = () => {
     logout();
     navigate("/login");
@@ -60,8 +65,17 @@ const Layout = ({ children }) => {
               <X className="h-6 w-6" />
             </button>
           </div>
+          {user?.approvalStatus !== "approved" && (
+            <div className="px-4 py-2">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2">
+                <span className="text-sm text-yellow-800">
+                  ⚠️ Account {user?.approvalStatus} - Limited access
+                </span>
+              </div>
+            </div>
+          )}
           <nav className="flex-1 space-y-1 px-2 py-4">
-            {navigation.map((item) => {
+            {filteredNavigation.map((item) => {
               const isActive = location.pathname === item.href;
               return (
                 <Link
@@ -92,7 +106,7 @@ const Layout = ({ children }) => {
             </h1>
           </div>
           <nav className="flex-1 space-y-1 px-2 py-4">
-            {navigation.map((item) => {
+            {filteredNavigation.map((item) => {
               const isActive = location.pathname === item.href;
               return (
                 <Link
@@ -124,6 +138,9 @@ const Layout = ({ children }) => {
                   {user?.profile?.firstName} {user?.profile?.lastName}
                 </p>
                 <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
+                {user?.approvalStatus !== "approved" && (
+                  <p className="text-xs text-yellow-600 capitalize">{user?.approvalStatus}</p>
+                )}
               </div>
             </div>
             <button
@@ -150,7 +167,17 @@ const Layout = ({ children }) => {
           </button>
 
           <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-            <div className="flex flex-1"></div>
+            <div className="flex flex-1">
+              {user?.approvalStatus !== "approved" && (
+                <div className="flex items-center">
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-1">
+                    <span className="text-sm text-yellow-800">
+                      ⚠️ Account {user?.approvalStatus} - Limited access
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
             <div className="flex items-center gap-x-4 lg:gap-x-6">
               <div className="hidden lg:block lg:h-6 lg:w-px lg:bg-gray-200" />
               <div className="flex items-center gap-x-4">

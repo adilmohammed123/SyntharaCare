@@ -13,6 +13,7 @@ import Profile from "./pages/Profile";
 import Diagnoses from "./pages/Diagnoses";
 import Reminders from "./pages/Reminders";
 import Medicines from "./pages/Medicines";
+import PendingApproval from "./pages/PendingApproval";
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -33,6 +34,11 @@ function AppContent() {
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );
+  }
+
+  // Check if user needs approval
+  if (user && user.approvalStatus !== "approved") {
+    return <PendingApproval />;
   }
 
   return (

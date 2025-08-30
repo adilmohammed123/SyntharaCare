@@ -78,7 +78,8 @@ router.post(
           _id: user._id,
           email: user.email,
           role: user.role,
-          profile: user.profile
+          profile: user.profile,
+          approvalStatus: user.approvalStatus
         }
       });
     } catch (error) {
@@ -132,7 +133,8 @@ router.post(
           _id: user._id,
           email: user.email,
           role: user.role,
-          profile: user.profile
+          profile: user.profile,
+          approvalStatus: user.approvalStatus
         }
       });
     } catch (error) {
@@ -166,7 +168,8 @@ router.get("/me", withDB, async (req, res) => {
       _id: user._id,
       email: user.email,
       role: user.role,
-      profile: user.profile
+      profile: user.profile,
+      approvalStatus: user.approvalStatus
     });
   } catch (error) {
     console.error("Get user error:", error);
@@ -221,7 +224,8 @@ router.put(
           _id: user._id,
           email: user.email,
           role: user.role,
-          profile: user.profile
+          profile: user.profile,
+          approvalStatus: user.approvalStatus
         }
       });
     } catch (error) {

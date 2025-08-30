@@ -1,4 +1,5 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const { body, validationResult } = require("express-validator");
 const Appointment = require("../models/Appointment");
 const Doctor = require("../models/Doctor");
@@ -308,23 +309,48 @@ router.put(
   ],
   async (req, res) => {
     try {
+      console.log("Status update request:", {
+        appointmentId: req.params.id,
+        status: req.body.status,
+        userRole: req.user.role,
+        userId: req.user._id
+      });
+
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
+        console.log("Validation errors:", errors.array());
         return res.status(400).json({ errors: errors.array() });
+      }
+
+      // Validate appointment ID format
+      if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        console.log("Invalid appointment ID format:", req.params.id);
+        return res
+          .status(400)
+          .json({ message: "Invalid appointment ID format" });
       }
 
       const { status, cancellationReason } = req.body;
       const appointment = await Appointment.findById(req.params.id);
 
       if (!appointment) {
+        console.log("Appointment not found:", req.params.id);
         return res.status(404).json({ message: "Appointment not found" });
       }
+
+      console.log("Found appointment:", {
+        appointmentId: appointment._id,
+        patientId: appointment.patientId,
+        doctorId: appointment.doctorId,
+        currentStatus: appointment.status
+      });
 
       // Check permissions
       if (
         req.user.role === "patient" &&
         appointment.patientId.toString() !== req.user._id.toString()
       ) {
+        console.log("Patient access denied - not the appointment owner");
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -334,9 +360,59 @@ router.put(
           !doctor ||
           appointment.doctorId.toString() !== doctor._id.toString()
         ) {
+          console.log("Doctor access denied - not the appointment doctor");
           return res.status(403).json({ message: "Access denied" });
         }
       }
+
+      if (req.user.role === "organization_admin") {
+        // Hospital admins can access appointments for doctors in their hospitals
+        const Hospital = require("../models/Hospital");
+        const userHospitals = await Hospital.find({
+          organizationAdmin: req.user._id,
+          approvalStatus: "approved"
+        });
+
+        if (userHospitals.length > 0) {
+          const hospitalIds = userHospitals.map((h) => h._id);
+          const doctor = await Doctor.findById(appointment.doctorId);
+
+          if (
+            !doctor ||
+            !hospitalIds.some(
+              (id) => id.toString() === appointment.hospitalId.toString()
+            )
+          ) {
+            console.log(
+              "Organization admin access denied - appointment not in their hospital"
+            );
+            return res.status(403).json({ message: "Access denied" });
+          }
+        } else {
+          console.log(
+            "Organization admin access denied - no approved hospitals"
+          );
+          return res.status(403).json({ message: "Access denied" });
+        }
+      }
+
+      // Admin users have full access
+      if (
+        req.user.role !== "admin" &&
+        req.user.role !== "patient" &&
+        req.user.role !== "doctor" &&
+        req.user.role !== "organization_admin"
+      ) {
+        console.log("Unknown role access denied:", req.user.role);
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      console.log(
+        "Permission check passed, updating status from",
+        appointment.status,
+        "to",
+        status
+      );
 
       appointment.status = status;
       if (status === "cancelled" && cancellationReason) {
@@ -345,6 +421,7 @@ router.put(
       }
 
       await appointment.save();
+      console.log("Appointment status updated successfully");
 
       res.json({
         message: "Appointment status updated successfully",
@@ -352,10 +429,60 @@ router.put(
       });
     } catch (error) {
       console.error("Update appointment status error:", error);
+      console.error("Error stack:", error.stack);
       res.status(500).json({ message: "Server error" });
     }
   }
 );
+
+// @route   GET /api/appointments/:id/test
+// @desc    Test endpoint to check appointment details
+// @access  Private
+router.get("/:id/test", auth, async (req, res) => {
+  try {
+    console.log("Testing appointment access for ID:", req.params.id);
+    console.log("User:", req.user._id, "Role:", req.user.role);
+
+    // Validate appointment ID format
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      console.log("Invalid appointment ID format:", req.params.id);
+      return res.status(400).json({ message: "Invalid appointment ID format" });
+    }
+
+    const appointment = await Appointment.findById(req.params.id)
+      .populate("patientId", "profile.firstName profile.lastName email")
+      .populate("doctorId", "userId specialization")
+      .populate("doctorId.userId", "profile.firstName profile.lastName");
+
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    console.log("Appointment found:", {
+      id: appointment._id,
+      patientId: appointment.patientId._id,
+      doctorId: appointment.doctorId._id,
+      status: appointment.status,
+      date: appointment.date
+    });
+
+    res.json({
+      message: "Appointment found",
+      appointment: {
+        id: appointment._id,
+        patientId: appointment.patientId._id,
+        doctorId: appointment.doctorId._id,
+        status: appointment.status,
+        date: appointment.date,
+        patientName: `${appointment.patientId.profile.firstName} ${appointment.patientId.profile.lastName}`,
+        doctorName: `${appointment.doctorId.userId.profile.firstName} ${appointment.doctorId.userId.profile.lastName}`
+      }
+    });
+  } catch (error) {
+    console.error("Test appointment error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
 
 // @route   DELETE /api/appointments/:id
 // @desc    Cancel appointment
