@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "react-query";
-import { doctorsAPI } from "../utils/api";
+import { doctorsAPI, hospitalsAPI } from "../utils/api";
 import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";
 import {
@@ -11,7 +11,8 @@ import {
   Clock,
   Calendar,
   Plus,
-  X
+  X,
+  Building2
 } from "lucide-react";
 
 const Doctors = () => {
