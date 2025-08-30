@@ -16,7 +16,8 @@ import {
   Mail,
   User,
   Shield,
-  Activity
+  Activity,
+  Calendar
 } from "lucide-react";
 
 const Admin = () => {
