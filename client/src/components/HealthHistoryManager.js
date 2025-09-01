@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { healthHistoryAPI } from "../utils/api";
 import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";

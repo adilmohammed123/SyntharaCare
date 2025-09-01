@@ -96,6 +96,17 @@ const Admin = () => {
     }
   });
 
+  const approveDoctorMutation = useMutation({
+    mutationFn: (doctorId) => adminAPI.approveDoctor(doctorId),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["hospitalDoctors"]);
+      toast.success("Doctor approved successfully");
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to approve doctor");
+    }
+  });
+
   const handleSuspendDoctor = async (doctorId, suspensionData) => {
     await suspendDoctorMutation.mutateAsync({ doctorId, suspensionData });
   };
@@ -368,23 +379,41 @@ const Admin = () => {
                         className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                           doctor.user?.accountStatus === "suspended"
                             ? "bg-red-100 text-red-800"
+                            : doctor.user?.approvalStatus === "pending"
+                            ? "bg-yellow-100 text-yellow-800"
                             : "bg-green-100 text-green-800"
                         }`}
                       >
                         {doctor.user?.accountStatus === "suspended"
                           ? "Suspended"
+                          : doctor.user?.approvalStatus === "pending"
+                          ? "Pending Approval"
                           : "Active"}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
-                        <button
-                          onClick={() => openSuspensionModal(doctor)}
-                          className="text-red-600 hover:text-red-900"
-                          title="Suspend Doctor"
-                        >
-                          <Ban className="h-4 w-4" />
-                        </button>
+                        {doctor.user?.approvalStatus === "pending" && (
+                          <button
+                            onClick={() =>
+                              approveDoctorMutation.mutate(doctor._id)
+                            }
+                            disabled={approveDoctorMutation.isLoading}
+                            className="text-green-600 hover:text-green-900"
+                            title="Approve Doctor"
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                          </button>
+                        )}
+                        {doctor.user?.accountStatus !== "suspended" && (
+                          <button
+                            onClick={() => openSuspensionModal(doctor)}
+                            className="text-red-600 hover:text-red-900"
+                            title="Suspend Doctor"
+                          >
+                            <Ban className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
