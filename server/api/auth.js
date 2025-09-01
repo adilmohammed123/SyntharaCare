@@ -75,6 +75,29 @@ router.post(
         }
       }
 
+      // Validate hospital exists for hospital admins
+      if (role === "organization_admin" && hospitalId) {
+        const Hospital = require("../models/Hospital");
+        const hospital = await Hospital.findById(hospitalId);
+        if (!hospital || hospital.approvalStatus !== "approved") {
+          return res
+            .status(400)
+            .json({ message: "Invalid or unapproved hospital" });
+        }
+
+        // Check if hospital already has an admin
+        const existingAdmin = await User.findOne({
+          role: "organization_admin",
+          adminHospital: hospitalId
+        });
+
+        if (existingAdmin) {
+          return res
+            .status(400)
+            .json({ message: "This hospital already has an administrator" });
+        }
+      }
+
       // Hash password
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(password, salt);
@@ -85,9 +108,12 @@ router.post(
         password: hashedPassword,
         role,
         profile,
-        // Auto-approve admin users and patients
+        // Auto-approve admin users and patients, but doctors need approval
         approvalStatus:
-          role === "admin" || role === "patient" ? "approved" : "pending"
+          role === "admin" || role === "patient" ? "approved" : "pending",
+        // Add hospital association for hospital admins
+        ...(role === "organization_admin" &&
+          hospitalId && { adminHospital: hospitalId })
       });
 
       await user.save();

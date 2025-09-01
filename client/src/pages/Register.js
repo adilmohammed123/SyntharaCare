@@ -22,12 +22,13 @@ const Register = () => {
 
   const selectedRole = watch("role");
 
-  // Fetch approved hospitals for doctor registration
+  // Fetch approved hospitals for doctor and hospital admin registration
   const { data: hospitalsData, isLoading: hospitalsLoading } = useQuery(
     ["approved-hospitals"],
     () => hospitalsAPI.getAll({ approvalStatus: "approved", limit: 100 }),
     {
-      enabled: selectedRole === "doctor" // Enable when doctor role is selected
+      enabled:
+        selectedRole === "doctor" || selectedRole === "organization_admin" // Enable when doctor or hospital admin role is selected
     }
   );
 
@@ -56,6 +57,11 @@ const Register = () => {
         userData.licenseNumber = data.licenseNumber;
         userData.experience = parseInt(data.experience) || 0;
         userData.consultationFee = parseFloat(data.consultationFee) || 50;
+      }
+
+      // Add hospital information for hospital admins
+      if (data.role === "organization_admin" && data.hospitalId) {
+        userData.hospitalId = data.hospitalId;
       }
 
       await registerUser(userData);
@@ -439,6 +445,60 @@ const Register = () => {
                       </p>
                     )}
                   </div>
+                </div>
+              </>
+            )}
+
+            {/* Hospital Admin-specific fields */}
+            {selectedRole === "organization_admin" && (
+              <>
+                <div>
+                  <label htmlFor="hospitalId" className="form-label">
+                    <Building2 className="inline h-4 w-4 mr-1" />
+                    Hospital to Administer
+                  </label>
+                  <select
+                    id="hospitalId"
+                    className={`input-field ${
+                      errors.hospitalId ? "border-red-500" : ""
+                    }`}
+                    disabled={hospitalsLoading}
+                    {...register("hospitalId", {
+                      required:
+                        selectedRole === "organization_admin"
+                          ? "Hospital is required"
+                          : false
+                    })}
+                  >
+                    <option value="">
+                      {hospitalsLoading
+                        ? "Loading hospitals..."
+                        : "Select a hospital to administer"}
+                    </option>
+                    {hospitalsData?.hospitals?.map((hospital) => (
+                      <option key={hospital._id} value={hospital._id}>
+                        {hospital.name} - {hospital.address.city},{" "}
+                        {hospital.address.state}
+                      </option>
+                    ))}
+                  </select>
+                  {hospitalsLoading && (
+                    <p className="mt-1 text-sm text-gray-600">
+                      Loading approved hospitals...
+                    </p>
+                  )}
+                  {!hospitalsLoading &&
+                    hospitalsData?.hospitals?.length === 0 && (
+                      <p className="mt-1 text-sm text-yellow-600">
+                        No approved hospitals available. Please contact an
+                        administrator.
+                      </p>
+                    )}
+                  {errors.hospitalId && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.hospitalId.message}
+                    </p>
+                  )}
                 </div>
               </>
             )}

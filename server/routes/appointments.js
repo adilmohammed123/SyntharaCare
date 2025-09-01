@@ -159,25 +159,21 @@ router.get("/", auth, async (req, res) => {
         query.doctorId = doctor._id;
       }
     } else if (req.user.role === "organization_admin") {
-      // Hospital admins can see appointments for doctors in their hospitals
+      // Hospital admins can see appointments for doctors in their hospital
       const Hospital = require("../models/Hospital");
-      const userHospitals = await Hospital.find({
-        organizationAdmin: req.user._id,
-        approvalStatus: "approved"
-      });
+      const hospital = await Hospital.findById(req.user.adminHospital);
 
-      if (userHospitals.length > 0) {
-        const hospitalIds = userHospitals.map((h) => h._id);
-        const doctorsInHospitals = await Doctor.find({
-          hospitalId: { $in: hospitalIds },
+      if (hospital && hospital.approvalStatus === "approved") {
+        const doctorsInHospital = await Doctor.find({
+          hospitalId: hospital._id,
           approvalStatus: "approved"
         });
 
-        if (doctorsInHospitals.length > 0) {
-          const doctorIds = doctorsInHospitals.map((d) => d._id);
+        if (doctorsInHospital.length > 0) {
+          const doctorIds = doctorsInHospital.map((d) => d._id);
           query.doctorId = { $in: doctorIds };
         } else {
-          // No doctors in hospitals, return empty result
+          // No doctors in hospital, return empty result
           return res.json({
             appointments: [],
             totalPages: 0,
@@ -186,7 +182,7 @@ router.get("/", auth, async (req, res) => {
           });
         }
       } else {
-        // No approved hospitals, return empty result
+        // No approved hospital, return empty result
         return res.json({
           appointments: [],
           totalPages: 0,
@@ -366,22 +362,16 @@ router.put(
       }
 
       if (req.user.role === "organization_admin") {
-        // Hospital admins can access appointments for doctors in their hospitals
+        // Hospital admins can access appointments for doctors in their hospital
         const Hospital = require("../models/Hospital");
-        const userHospitals = await Hospital.find({
-          organizationAdmin: req.user._id,
-          approvalStatus: "approved"
-        });
+        const hospital = await Hospital.findById(req.user.adminHospital);
 
-        if (userHospitals.length > 0) {
-          const hospitalIds = userHospitals.map((h) => h._id);
+        if (hospital && hospital.approvalStatus === "approved") {
           const doctor = await Doctor.findById(appointment.doctorId);
 
           if (
             !doctor ||
-            !hospitalIds.some(
-              (id) => id.toString() === appointment.hospitalId.toString()
-            )
+            doctor.hospitalId.toString() !== hospital._id.toString()
           ) {
             console.log(
               "Organization admin access denied - appointment not in their hospital"
@@ -390,7 +380,7 @@ router.put(
           }
         } else {
           console.log(
-            "Organization admin access denied - no approved hospitals"
+            "Organization admin access denied - no approved hospital"
           );
           return res.status(403).json({ message: "Access denied" });
         }

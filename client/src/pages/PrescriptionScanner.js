@@ -188,5 +188,3 @@ const PrescriptionScanner = () => {
 };
 
 export default PrescriptionScanner;
-
-

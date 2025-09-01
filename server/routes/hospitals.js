@@ -145,8 +145,7 @@ router.post(
       }
 
       const hospital = new Hospital({
-        ...req.body,
-        organizationAdmin: req.user._id
+        ...req.body
       });
 
       await hospital.save();
@@ -190,8 +189,8 @@ router.put(
         return res.status(404).json({ message: "Hospital not found" });
       }
 
-      // Check if user owns this hospital
-      if (hospital.organizationAdmin.toString() !== req.user._id.toString()) {
+      // Check if user is the admin of this hospital
+      if (req.user.adminHospital?.toString() !== hospital._id.toString()) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -277,11 +276,7 @@ router.put(
         updateData,
         { new: true, runValidators: true }
       )
-        .populate(
-          "organizationAdmin",
-          "profile.firstName profile.lastName email"
-        )
-        .populate("approvedBy", "profile.firstName profile.lastName");
+      .populate("approvedBy", "profile.firstName profile.lastName");
 
       res.json({
         message: `Hospital ${req.body.approvalStatus} successfully`,
@@ -304,7 +299,7 @@ router.get(
   async (req, res) => {
     try {
       const hospitals = await Hospital.find({
-        organizationAdmin: req.user._id
+        _id: req.user.adminHospital
       }).sort({ createdAt: -1 });
 
       res.json(hospitals);
@@ -329,8 +324,8 @@ router.delete(
         return res.status(404).json({ message: "Hospital not found" });
       }
 
-      // Check if user owns this hospital
-      if (hospital.organizationAdmin.toString() !== req.user._id.toString()) {
+      // Check if user is the admin of this hospital
+      if (req.user.adminHospital?.toString() !== hospital._id.toString()) {
         return res.status(403).json({ message: "Access denied" });
       }
 

@@ -66,3 +66,5 @@ prescriptionSchema.index({ hospitalId: 1, prescriptionDate: -1 });
 module.exports = mongoose.model("Prescription", prescriptionSchema);
 
 
+
+

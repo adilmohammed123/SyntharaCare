@@ -132,12 +132,7 @@ const hospitalSchema = new mongoose.Schema(
         type: String
       }
     ],
-    // Organization admin who manages this hospital
-    organizationAdmin: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true
-    },
+
     // Approval status for new hospitals
     approvalStatus: {
       type: String,

@@ -70,6 +70,16 @@ const Admin = () => {
     }
   );
 
+  // Fetch all hospital doctors (for hospital admin)
+  const { data: hospitalDoctors, isLoading: hospitalDoctorsLoading } = useQuery(
+    ["hospital-doctors"],
+    () => adminAPI.getHospitalDoctors(),
+    {
+      enabled: isHospitalAdmin,
+      refetchInterval: 30000
+    }
+  );
+
   // Approve user mutation
   const approveUserMutation = useMutation(
     ({ userId, approvalStatus, approvalNotes }) =>
@@ -119,12 +129,46 @@ const Admin = () => {
       onSuccess: () => {
         toast.success("Doctor approval updated successfully");
         queryClient.invalidateQueries("pending-doctors");
+        queryClient.invalidateQueries("hospital-doctors");
         queryClient.invalidateQueries("admin-dashboard");
       },
       onError: (error) => {
         toast.error(
           error.response?.data?.message || "Failed to update doctor approval"
         );
+      }
+    }
+  );
+
+  // Update doctor mutation
+  const updateDoctorMutation = useMutation(
+    ({ doctorId, doctorData }) =>
+      adminAPI.updateHospitalDoctor(doctorId, doctorData),
+    {
+      onSuccess: () => {
+        toast.success("Doctor profile updated successfully");
+        queryClient.invalidateQueries("hospital-doctors");
+        queryClient.invalidateQueries("admin-dashboard");
+      },
+      onError: (error) => {
+        toast.error(
+          error.response?.data?.message || "Failed to update doctor profile"
+        );
+      }
+    }
+  );
+
+  // Remove doctor mutation
+  const removeDoctorMutation = useMutation(
+    (doctorId) => adminAPI.removeHospitalDoctor(doctorId),
+    {
+      onSuccess: () => {
+        toast.success("Doctor removed from hospital successfully");
+        queryClient.invalidateQueries("hospital-doctors");
+        queryClient.invalidateQueries("admin-dashboard");
+      },
+      onError: (error) => {
+        toast.error(error.response?.data?.message || "Failed to remove doctor");
       }
     }
   );
@@ -184,7 +228,8 @@ const Admin = () => {
   const tabs = isHospitalAdmin
     ? [
         { id: "dashboard", name: "Dashboard", icon: Activity },
-        { id: "doctors", name: "Pending Doctors", icon: User }
+        { id: "doctors", name: "Pending Doctors", icon: User },
+        { id: "manage-doctors", name: "Manage Doctors", icon: User }
       ]
     : [
         { id: "dashboard", name: "Dashboard", icon: Activity },
@@ -681,6 +726,112 @@ const Admin = () => {
                             className="btn-secondary text-sm"
                           >
                             Reject
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Manage Doctors Tab */}
+          {activeTab === "manage-doctors" && (
+            <div className="space-y-6">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Manage Doctors in {user?.organization?.name || "Your Hospital"}
+              </h2>
+
+              {hospitalDoctorsLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+                  <p className="mt-2 text-gray-600">Loading doctors...</p>
+                </div>
+              ) : hospitalDoctors?.doctors?.length === 0 ? (
+                <div className="text-center py-8">
+                  <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    No doctors found in your hospital.
+                  </h3>
+                  <p className="text-gray-600">
+                    You can add doctors by approving pending doctor requests.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {hospitalDoctors?.doctors?.map((doctor) => (
+                    <div
+                      key={doctor._id}
+                      className="border border-gray-200 rounded-lg p-6"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3 mb-2">
+                            <h3 className="text-lg font-medium text-gray-900">
+                              Dr. {doctor.userId.profile.firstName}{" "}
+                              {doctor.userId.profile.lastName}
+                            </h3>
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                              {doctor.specialization}
+                            </span>
+                          </div>
+                          <div className="space-y-1 text-sm text-gray-600">
+                            <p>
+                              <Mail className="inline h-4 w-4 mr-1" />
+                              {doctor.userId.email}
+                            </p>
+                            <p>
+                              <Building2 className="inline h-4 w-4 mr-1" />
+                              {doctor.hospitalId.name}
+                            </p>
+                            <p>
+                              <Clock className="inline h-4 w-4 mr-1" />
+                              {doctor.experience} years experience
+                            </p>
+                            <p>
+                              <Star className="inline h-4 w-4 mr-1" />
+                              License: {doctor.licenseNumber}
+                            </p>
+                            <p>
+                              <Clock className="inline h-4 w-4 mr-1" />
+                              Submitted{" "}
+                              {new Date(doctor.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                          {doctor.bio && (
+                            <p className="text-sm text-gray-600 mt-2">
+                              {doctor.bio}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() =>
+                              handleApproveDoctor(doctor._id, "approved")
+                            }
+                            disabled={approveDoctorMutation.isLoading}
+                            className="btn-primary text-sm"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() =>
+                              handleApproveDoctor(doctor._id, "rejected")
+                            }
+                            disabled={approveDoctorMutation.isLoading}
+                            className="btn-secondary text-sm"
+                          >
+                            Reject
+                          </button>
+                          <button
+                            onClick={() =>
+                              removeDoctorMutation.mutate(doctor._id)
+                            }
+                            disabled={removeDoctorMutation.isLoading}
+                            className="btn-danger text-sm"
+                          >
+                            Remove
                           </button>
                         </div>
                       </div>

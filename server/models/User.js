@@ -63,6 +63,11 @@ const userSchema = new mongoose.Schema(
     lastLogin: {
       type: Date,
       default: Date.now
+    },
+    // Hospital admin specific field
+    adminHospital: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Hospital"
     }
   },
   {
