@@ -724,4 +724,181 @@ router.put(
   }
 );
 
+// @route   POST /api/admin/doctors/:id/suspend
+// @desc    Suspend a doctor account
+// @access  Private (Hospital Admin)
+router.post(
+  "/doctors/:id/suspend",
+  auth,
+  authorize("organization_admin"),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { reason, expiryDate, notes } = req.body;
+
+      // Find the hospital where this admin works
+      const hospital = await Hospital.findById(req.user.adminHospital);
+      if (!hospital) {
+        return res
+          .status(404)
+          .json({ message: "Hospital not found for this admin" });
+      }
+
+      // Find the doctor
+      const doctor = await Doctor.findById(id);
+      if (!doctor || doctor.hospitalId.toString() !== hospital._id.toString()) {
+        return res.status(404).json({ message: "Doctor not found" });
+      }
+
+      // Find the user
+      const user = await User.findById(doctor.userId);
+      if (!user || user.role !== "doctor") {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Suspend the account
+      user.accountStatus = "suspended";
+      user.suspensionDetails = {
+        isSuspended: true,
+        suspendedBy: req.user._id,
+        suspendedAt: new Date(),
+        suspensionReason: reason || "Suspended by hospital admin",
+        suspensionExpiry: expiryDate ? new Date(expiryDate) : null,
+        suspensionNotes: notes || ""
+      };
+
+      await user.save();
+
+      res.json({
+        message: "Doctor account suspended successfully",
+        suspensionDetails: user.suspensionDetails
+      });
+    } catch (error) {
+      console.error("Suspend doctor error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+);
+
+// @route   POST /api/admin/doctors/:id/unsuspend
+// @desc    Unsuspend a doctor account
+// @access  Private (Hospital Admin)
+router.post(
+  "/doctors/:id/unsuspend",
+  auth,
+  authorize("organization_admin"),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      // Find the hospital where this admin works
+      const hospital = await Hospital.findById(req.user.adminHospital);
+      if (!hospital) {
+        return res
+          .status(404)
+          .json({ message: "Hospital not found for this admin" });
+      }
+
+      // Find the doctor
+      const doctor = await Doctor.findById(id);
+      if (!doctor || doctor.hospitalId.toString() !== hospital._id.toString()) {
+        return res.status(404).json({ message: "Doctor not found" });
+      }
+
+      // Find the user
+      const user = await User.findById(doctor.userId);
+      if (!user || user.role !== "doctor") {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Unsuspend the account
+      user.accountStatus = "active";
+      user.suspensionDetails = {
+        isSuspended: false,
+        suspendedBy: null,
+        suspendedAt: null,
+        suspensionReason: "",
+        suspensionExpiry: null,
+        suspensionNotes: ""
+      };
+
+      await user.save();
+
+      res.json({
+        message: "Doctor account unsuspended successfully"
+      });
+    } catch (error) {
+      console.error("Unsuspend doctor error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+);
+
+// @route   GET /api/admin/doctors/suspended
+// @desc    Get all suspended doctors in the hospital
+// @access  Private (Hospital Admin)
+router.get(
+  "/doctors/suspended",
+  auth,
+  authorize("organization_admin"),
+  async (req, res) => {
+    try {
+      // Find the hospital where this admin works
+      const hospital = await Hospital.findById(req.user.adminHospital);
+      if (!hospital) {
+        return res
+          .status(404)
+          .json({ message: "Hospital not found for this admin" });
+      }
+
+      // Find suspended doctors in this hospital
+      const suspendedDoctors = await Doctor.aggregate([
+        {
+          $match: {
+            hospitalId: hospital._id,
+            approvalStatus: "approved"
+          }
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "userId",
+            foreignField: "_id",
+            as: "user"
+          }
+        },
+        {
+          $unwind: "$user"
+        },
+        {
+          $match: {
+            "user.accountStatus": "suspended"
+          }
+        },
+        {
+          $project: {
+            _id: 1,
+            specialization: 1,
+            licenseNumber: 1,
+            yearsOfExperience: 1,
+            approvalStatus: 1,
+            createdAt: 1,
+            "user.profile": 1,
+            "user.email": 1,
+            "user.suspensionDetails": 1
+          }
+        }
+      ]);
+
+      res.json({
+        suspendedDoctors,
+        count: suspendedDoctors.length
+      });
+    } catch (error) {
+      console.error("Get suspended doctors error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+);
+
 module.exports = router;

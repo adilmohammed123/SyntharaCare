@@ -14,8 +14,10 @@ import {
   LogOut,
   Menu,
   X,
-  Camera
+  Camera,
+  FolderOpen
 } from "lucide-react";
+import DoctorApprovalBanner from "./DoctorApprovalBanner";
 
 const Layout = ({ children }) => {
   const { user, logout } = useAuth();
@@ -36,6 +38,9 @@ const Layout = ({ children }) => {
       href: "/prescription-scanner",
       icon: Camera
     },
+    ...(user?.role === "patient"
+      ? [{ name: "Health History", href: "/health-history", icon: FolderOpen }]
+      : []),
     ...(user?.role === "admin"
       ? [{ name: "Admin", href: "/admin", icon: Shield }]
       : []),
@@ -166,6 +171,9 @@ const Layout = ({ children }) => {
 
       {/* Main content */}
       <div className="lg:pl-64">
+        {/* Doctor Approval Banner */}
+        <DoctorApprovalBanner />
+
         {/* Top bar */}
         <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
           <button

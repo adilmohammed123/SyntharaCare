@@ -2,11 +2,17 @@ import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "react-query";
 import { useForm } from "react-hook-form";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
-import { appointmentsAPI, doctorsAPI, hospitalsAPI } from "../utils/api";
+import {
+  appointmentsAPI,
+  doctorsAPI,
+  hospitalsAPI,
+  healthHistoryAPI
+} from "../utils/api";
 import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";
 import KanbanBoard from "../components/KanbanBoard";
 import AppointmentDetails from "../components/AppointmentDetails";
+import HealthHistoryManager from "../components/HealthHistoryManager";
 import {
   Calendar,
   Clock,
@@ -18,7 +24,9 @@ import {
   AlertCircle,
   GripVertical,
   Grid3X3,
-  List
+  List,
+  FileText,
+  Share2
 } from "lucide-react";
 
 const Appointments = () => {
@@ -33,6 +41,8 @@ const Appointments = () => {
   const [viewMode, setViewMode] = useState("list"); // 'list' or 'kanban'
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [showAppointmentDetails, setShowAppointmentDetails] = useState(false);
+  const [selectedHealthHistory, setSelectedHealthHistory] = useState([]);
+  const [showHealthHistoryModal, setShowHealthHistoryModal] = useState(false);
 
   const {
     register,
@@ -115,6 +125,9 @@ const Appointments = () => {
         setSelectedDate("");
         reset();
         queryClient.invalidateQueries("appointments");
+
+        // Handle health history sharing
+        handleAppointmentCreated(response);
       },
       onError: (error) => {
         console.error("Appointment creation failed:", error);
@@ -250,6 +263,32 @@ const Appointments = () => {
 
     console.log("Calling createAppointmentMutation with:", appointmentData);
     createAppointmentMutation.mutate(appointmentData);
+  };
+
+  // Share health history with appointment after creation
+  const shareHealthHistoryMutation = useMutation(
+    (data) => healthHistoryAPI.shareWithAppointment(data),
+    {
+      onSuccess: () => {
+        toast.success("Health history shared successfully!");
+        setSelectedHealthHistory([]);
+      },
+      onError: (error) => {
+        toast.error(
+          error.response?.data?.message || "Failed to share health history"
+        );
+      }
+    }
+  );
+
+  // Handle appointment creation success
+  const handleAppointmentCreated = (appointment) => {
+    if (selectedHealthHistory.length > 0) {
+      shareHealthHistoryMutation.mutate({
+        appointmentId: appointment._id,
+        healthHistoryIds: selectedHealthHistory.map((doc) => doc._id)
+      });
+    }
   };
 
   const getStatusColor = (status) => {
@@ -886,6 +925,57 @@ const Appointments = () => {
                   />
                 </div>
 
+                {/* Health History Selection */}
+                <div>
+                  <label className="form-label">
+                    Share Health History (Optional)
+                  </label>
+                  <div className="space-y-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowHealthHistoryModal(true)}
+                      className="btn-secondary flex items-center space-x-2 w-full"
+                    >
+                      <FileText className="h-4 w-4" />
+                      <span>Select Health Documents</span>
+                    </button>
+
+                    {selectedHealthHistory.length > 0 && (
+                      <div className="border rounded-lg p-3 bg-gray-50">
+                        <p className="text-sm font-medium text-gray-700 mb-2">
+                          Selected Documents ({selectedHealthHistory.length}):
+                        </p>
+                        <div className="space-y-2">
+                          {selectedHealthHistory.map((doc) => (
+                            <div
+                              key={doc._id}
+                              className="flex items-center justify-between text-sm"
+                            >
+                              <div className="flex items-center space-x-2">
+                                <FileText className="h-3 w-3 text-gray-500" />
+                                <span className="text-gray-600">
+                                  {doc.title}
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setSelectedHealthHistory((prev) =>
+                                    prev.filter((d) => d._id !== doc._id)
+                                  )
+                                }
+                                className="text-red-500 hover:text-red-700"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <div className="flex justify-end space-x-3 pt-4">
                   <button
                     type="button"
@@ -911,6 +1001,45 @@ const Appointments = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Health History Selection Modal */}
+      {showHealthHistoryModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-10 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">
+                Select Health History Documents
+              </h3>
+              <button
+                onClick={() => setShowHealthHistoryModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ×
+              </button>
+            </div>
+
+            <HealthHistoryManager
+              onSelectDocuments={setSelectedHealthHistory}
+              selectedDocuments={selectedHealthHistory}
+            />
+
+            <div className="flex justify-end space-x-3 mt-6 pt-4 border-t">
+              <button
+                onClick={() => setShowHealthHistoryModal(false)}
+                className="btn-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => setShowHealthHistoryModal(false)}
+                className="btn-primary"
+              >
+                Done
+              </button>
             </div>
           </div>
         </div>

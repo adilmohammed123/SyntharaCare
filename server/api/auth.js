@@ -178,14 +178,15 @@ router.post(
       }
 
       // Create JWT token
-      const payload = {
-        userId: user._id,
-        role: user.role
-      };
-
-      const token = jwt.sign(payload, process.env.JWT_SECRET, {
-        expiresIn: process.env.JWT_EXPIRE
-      });
+      const token = jwt.sign(
+        {
+          userId: user._id,
+          role: user.role,
+          accessLevel: user.accessLevel || "full"
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: "24h" }
+      );
 
       // Ensure admin users and patients are always considered approved
       const effectiveApprovalStatus =
@@ -238,15 +239,80 @@ router.post(
         return res.status(400).json({ message: "Invalid credentials" });
       }
 
-      // Create JWT token
-      const payload = {
-        userId: user._id,
-        role: user.role
-      };
+      // Check if user is approved
+      if (user.approvalStatus === "rejected") {
+        return res.status(403).json({
+          message: "Account has been rejected. Please contact support."
+        });
+      }
 
-      const token = jwt.sign(payload, process.env.JWT_SECRET, {
-        expiresIn: process.env.JWT_EXPIRE
-      });
+      // Check if user is suspended
+      if (
+        user.accountStatus === "suspended" ||
+        user.suspensionDetails?.isSuspended
+      ) {
+        const suspensionInfo = user.suspensionDetails;
+        const message = suspensionInfo?.suspensionExpiry
+          ? `Account suspended until ${new Date(
+              suspensionInfo.suspensionExpiry
+            ).toLocaleDateString()}. Reason: ${
+              suspensionInfo.suspensionReason || "No reason provided"
+            }`
+          : `Account suspended. Reason: ${
+              suspensionInfo?.suspensionReason || "No reason provided"
+            }`;
+
+        return res.status(403).json({
+          message,
+          suspensionDetails: suspensionInfo
+        });
+      }
+
+      // Allow doctors to log in with limited access until approved
+      if (user.role === "doctor" && user.approvalStatus === "pending") {
+        // Generate token but with limited permissions
+        const token = jwt.sign(
+          {
+            userId: user._id,
+            role: user.role,
+            accessLevel: "basic"
+          },
+          process.env.JWT_SECRET,
+          { expiresIn: "24h" }
+        );
+
+        return res.json({
+          token,
+          user: {
+            _id: user._id,
+            email: user.email,
+            role: user.role,
+            profile: user.profile,
+            approvalStatus: user.approvalStatus,
+            accessLevel: "basic"
+          },
+          message:
+            "Limited access granted. Complete profile and wait for hospital admin approval for full access."
+        });
+      }
+
+      // Require full approval for other roles
+      if (user.approvalStatus !== "approved") {
+        return res.status(403).json({
+          message: "Account pending approval. Please wait for admin approval."
+        });
+      }
+
+      // Create JWT token for approved users
+      const token = jwt.sign(
+        {
+          userId: user._id,
+          role: user.role,
+          accessLevel: "full"
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: "24h" }
+      );
 
       // Ensure admin users and patients are always considered approved
       const effectiveApprovalStatus =
@@ -261,7 +327,8 @@ router.post(
           email: user.email,
           role: user.role,
           profile: user.profile,
-          approvalStatus: effectiveApprovalStatus
+          approvalStatus: effectiveApprovalStatus,
+          accessLevel: "full"
         }
       });
     } catch (error) {

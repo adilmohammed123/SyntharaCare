@@ -98,6 +98,24 @@ const appointmentSchema = new mongoose.Schema(
     cancelledBy: {
       type: String,
       enum: ["patient", "doctor", "admin"]
+    },
+    // Health history shared during this appointment
+    sharedHealthHistory: [
+      {
+        healthHistoryId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "HealthHistory"
+        },
+        sharedAt: {
+          type: Date,
+          default: Date.now
+        }
+      }
+    ],
+    // Additional health notes for this appointment
+    healthNotes: {
+      type: String,
+      maxlength: 2000
     }
   },
   {

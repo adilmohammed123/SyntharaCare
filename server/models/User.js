@@ -68,6 +68,27 @@ const userSchema = new mongoose.Schema(
     adminHospital: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Hospital"
+    },
+    // Account status for doctors
+    accountStatus: {
+      type: String,
+      enum: ["active", "suspended", "inactive"],
+      default: "active"
+    },
+    // Suspension details
+    suspensionDetails: {
+      isSuspended: { type: Boolean, default: false },
+      suspendedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      suspendedAt: { type: Date },
+      suspensionReason: { type: String },
+      suspensionExpiry: { type: Date },
+      suspensionNotes: { type: String }
+    },
+    // Access level for doctors
+    accessLevel: {
+      type: String,
+      enum: ["none", "basic", "full"],
+      default: "basic" // Doctors start with basic access until approved
     }
   },
   {

@@ -167,7 +167,15 @@ export const adminAPI = {
     api.put(
       `/api/admin/hospital/doctors/${doctorId}/appointments/${appointmentId}`,
       { status }
-    )
+    ),
+  // Suspension management endpoints
+  suspendDoctor: (id, suspensionData) =>
+    api.post(`/api/admin/doctors/${id}/suspend`, suspensionData),
+  unsuspendDoctor: (id) => api.post(`/api/admin/doctors/${id}/unsuspend`),
+  getSuspendedDoctors: () => api.get("/api/admin/doctors/suspended"),
+
+  // Doctor approval endpoints
+  approveDoctor: (id) => api.post(`/api/admin/doctors/${id}/approve`)
 };
 
 export const prescriptionsAPI = {
@@ -182,4 +190,34 @@ export const prescriptionsAPI = {
     api.put(`/api/prescriptions/${id}`, prescriptionData),
   deletePrescription: (id) => api.delete(`/api/prescriptions/${id}`),
   getDoctorStats: () => api.get("/api/prescriptions/stats/doctor")
+};
+
+export const healthHistoryAPI = {
+  // Upload health history document
+  upload: (formData) =>
+    api.post("/api/health-history/upload", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data"
+      }
+    }),
+
+  // Get patient's health history
+  getAll: (params) => api.get("/api/health-history", { params }),
+
+  // Get specific health history document
+  getById: (id) => api.get(`/api/health-history/${id}`),
+
+  // Update health history document
+  update: (id, data) => api.put(`/api/health-history/${id}`, data),
+
+  // Delete health history document
+  delete: (id) => api.delete(`/api/health-history/${id}`),
+
+  // Share health history with appointment
+  shareWithAppointment: (data) =>
+    api.post("/api/health-history/share-with-appointment", data),
+
+  // Get health history shared with appointment
+  getAppointmentHealthHistory: (appointmentId) =>
+    api.get(`/api/health-history/appointment/${appointmentId}`)
 };

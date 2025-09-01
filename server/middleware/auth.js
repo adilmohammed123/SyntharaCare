@@ -1,45 +1,80 @@
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const jwt = require("jsonwebtoken");
+const User = require("../models/User");
 
+// Middleware to verify JWT token
 const auth = async (req, res, next) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-    
+    const token = req.header("Authorization")?.replace("Bearer ", "");
+
     if (!token) {
-      return res.status(401).json({ message: 'No token, authorization denied' });
+      return res
+        .status(401)
+        .json({ message: "No token, authorization denied" });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    const user = await User.findById(decoded.userId).select('-password');
-    
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.userId).select("-password");
+
     if (!user) {
-      return res.status(401).json({ message: 'Token is not valid' });
-    }
-
-    if (!user.isActive) {
-      return res.status(401).json({ message: 'User account is deactivated' });
+      return res.status(401).json({ message: "Token is not valid" });
     }
 
     req.user = user;
+    req.accessLevel = decoded.accessLevel || "full";
     next();
   } catch (error) {
-    console.error('Auth middleware error:', error);
-    res.status(401).json({ message: 'Token is not valid' });
+    console.error("Auth middleware error:", error);
+    res.status(401).json({ message: "Token is not valid" });
   }
 };
 
-const authorize = (...roles) => {
+// Middleware to check if user has required access level
+const requireAccessLevel = (requiredLevel) => {
   return (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({ message: 'Authentication required' });
-    }
+    const accessLevels = {
+      none: 0,
+      basic: 1,
+      full: 2
+    };
 
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ message: 'Access denied' });
+    const userLevel = accessLevels[req.accessLevel] || 0;
+    const required = accessLevels[requiredLevel] || 0;
+
+    if (userLevel < required) {
+      return res.status(403).json({
+        message: "Access denied. Insufficient permissions."
+      });
     }
 
     next();
   };
 };
 
-module.exports = { auth, authorize };
+// Middleware to check if doctor is approved (for sensitive operations)
+const requireDoctorApproval = (req, res, next) => {
+  if (req.user.role === "doctor" && req.user.approvalStatus !== "approved") {
+    return res.status(403).json({
+      message: "Access denied. Your account is pending hospital admin approval."
+    });
+  }
+  next();
+};
+
+// Middleware to authorize specific roles
+const authorize = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({
+        message: "Access denied. Insufficient role permissions."
+      });
+    }
+    next();
+  };
+};
+
+module.exports = {
+  auth,
+  authorize,
+  requireAccessLevel,
+  requireDoctorApproval
+};

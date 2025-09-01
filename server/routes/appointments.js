@@ -3,7 +3,12 @@ const mongoose = require("mongoose");
 const { body, validationResult } = require("express-validator");
 const Appointment = require("../models/Appointment");
 const Doctor = require("../models/Doctor");
-const { auth, authorize } = require("../middleware/auth");
+const Hospital = require("../models/Hospital");
+const {
+  auth,
+  authorize,
+  requireDoctorApproval
+} = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -13,6 +18,7 @@ const router = express.Router();
 router.post(
   "/",
   auth,
+  requireDoctorApproval,
   [
     body("hospitalId").isMongoId().withMessage("Hospital ID is required"),
     body("doctorId").isMongoId(),
@@ -40,7 +46,6 @@ router.post(
       } = req.body;
 
       // Check if hospital exists and is approved
-      const Hospital = require("../models/Hospital");
       const hospital = await Hospital.findById(hospitalId);
       if (
         !hospital ||
@@ -146,7 +151,7 @@ router.post(
 // @route   GET /api/appointments
 // @desc    Get appointments for current user
 // @access  Private
-router.get("/", auth, async (req, res) => {
+router.get("/", auth, requireDoctorApproval, async (req, res) => {
   try {
     const { page = 1, limit = 10, status, date } = req.query;
 
@@ -230,7 +235,7 @@ router.get("/", auth, async (req, res) => {
 // @route   GET /api/appointments/:id
 // @desc    Get appointment by ID
 // @access  Private
-router.get("/:id", auth, async (req, res) => {
+router.get("/:id", auth, requireDoctorApproval, async (req, res) => {
   try {
     const appointment = await Appointment.findById(req.params.id)
       .populate("patientId", "profile.firstName profile.lastName email")
@@ -292,6 +297,7 @@ router.get("/:id", auth, async (req, res) => {
 router.put(
   "/:id/status",
   auth,
+  requireDoctorApproval,
   [
     body("status").isIn([
       "scheduled",
@@ -477,7 +483,7 @@ router.get("/:id/test", auth, async (req, res) => {
 // @route   DELETE /api/appointments/:id
 // @desc    Cancel appointment
 // @access  Private
-router.delete("/:id", auth, async (req, res) => {
+router.delete("/:id", auth, requireDoctorApproval, async (req, res) => {
   try {
     const appointment = await Appointment.findById(req.params.id);
 

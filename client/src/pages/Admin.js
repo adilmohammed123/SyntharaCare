@@ -1,848 +1,481 @@
 import React, { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "react-query";
-import { adminAPI, hospitalsAPI } from "../utils/api";
 import { useAuth } from "../contexts/AuthContext";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { adminAPI } from "../utils/api";
 import toast from "react-hot-toast";
 import {
   Users,
-  Building2,
+  UserCheck,
+  UserX,
+  Clock,
+  AlertTriangle,
   CheckCircle,
   XCircle,
-  AlertCircle,
-  Clock,
-  Star,
-  MapPin,
-  Phone,
-  Mail,
-  User,
-  Shield,
-  Activity,
-  Calendar
+  MoreVertical,
+  Eye,
+  Edit,
+  Trash2,
+  Ban,
+  RotateCcw
 } from "lucide-react";
+import DoctorSuspensionModal from "../components/DoctorSuspensionModal";
 
 const Admin = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState("overview");
+  const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [showSuspensionModal, setShowSuspensionModal] = useState(false);
 
-  // Check if user is hospital admin
-  const isHospitalAdmin = user?.role === "organization_admin";
+  // Queries
+  const { data: pendingUsers } = useQuery({
+    queryKey: ["pendingUsers"],
+    queryFn: () => adminAPI.getPendingUsers(),
+    enabled: user?.role === "admin"
+  });
 
-  // Fetch admin dashboard stats
-  const { data: dashboardData } = useQuery(
-    ["admin-dashboard"],
-    () =>
-      isHospitalAdmin
-        ? adminAPI.getHospitalDashboard()
-        : adminAPI.getDashboard(),
-    {
-      refetchInterval: 30000 // Refetch every 30 seconds
+  const { data: hospitalDoctors } = useQuery({
+    queryKey: ["hospitalDoctors"],
+    queryFn: () => adminAPI.getHospitalDoctors(),
+    enabled: user?.role === "organization_admin"
+  });
+
+  const { data: suspendedDoctors } = useQuery({
+    queryKey: ["suspendedDoctors"],
+    queryFn: () => adminAPI.getSuspendedDoctors(),
+    enabled: user?.role === "organization_admin"
+  });
+
+  // Mutations
+  const approveUserMutation = useMutation({
+    mutationFn: (userId) => adminAPI.approveUser(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["pendingUsers"]);
+      toast.success("User approved successfully");
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to approve user");
     }
-  );
+  });
 
-  // Fetch pending users
-  const { data: pendingUsers, isLoading: usersLoading } = useQuery(
-    ["pending-users"],
-    () => adminAPI.getPendingUsers(),
-    {
-      refetchInterval: 30000
+  const rejectUserMutation = useMutation({
+    mutationFn: (userId) => adminAPI.rejectUser(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["pendingUsers"]);
+      toast.success("User rejected successfully");
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to reject user");
     }
-  );
+  });
 
-  // Fetch pending hospitals
-  const { data: pendingHospitals, isLoading: hospitalsLoading } = useQuery(
-    ["pending-hospitals"],
-    () => hospitalsAPI.getPendingApprovals(),
-    {
-      refetchInterval: 30000
+  const suspendDoctorMutation = useMutation({
+    mutationFn: ({ doctorId, suspensionData }) =>
+      adminAPI.suspendDoctor(doctorId, suspensionData),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["hospitalDoctors"]);
+      queryClient.invalidateQueries(["suspendedDoctors"]);
+      toast.success("Doctor suspended successfully");
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to suspend doctor");
     }
-  );
+  });
 
-  // Fetch pending doctors
-  const { data: pendingDoctors, isLoading: doctorsLoading } = useQuery(
-    ["pending-doctors"],
-    () =>
-      isHospitalAdmin
-        ? adminAPI.getHospitalPendingDoctors()
-        : adminAPI.getPendingDoctors(),
-    {
-      refetchInterval: 30000
+  const unsuspendDoctorMutation = useMutation({
+    mutationFn: (doctorId) => adminAPI.unsuspendDoctor(doctorId),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["hospitalDoctors"]);
+      queryClient.invalidateQueries(["suspendedDoctors"]);
+      toast.success("Doctor unsuspended successfully");
+    },
+    onError: (error) => {
+      toast.error(
+        error.response?.data?.message || "Failed to unsuspend doctor"
+      );
     }
-  );
+  });
 
-  // Fetch all hospital doctors (for hospital admin)
-  const { data: hospitalDoctors, isLoading: hospitalDoctorsLoading } = useQuery(
-    ["hospital-doctors"],
-    () => adminAPI.getHospitalDoctors(),
-    {
-      enabled: isHospitalAdmin,
-      refetchInterval: 30000
-    }
-  );
-
-  // Approve user mutation
-  const approveUserMutation = useMutation(
-    ({ userId, approvalStatus, approvalNotes }) =>
-      adminAPI.approveUser(userId, { approvalStatus, approvalNotes }),
-    {
-      onSuccess: () => {
-        toast.success("User approval updated successfully");
-        queryClient.invalidateQueries("pending-users");
-        queryClient.invalidateQueries("admin-dashboard");
-      },
-      onError: (error) => {
-        toast.error(
-          error.response?.data?.message || "Failed to update user approval"
-        );
-      }
-    }
-  );
-
-  // Approve hospital mutation
-  const approveHospitalMutation = useMutation(
-    ({ hospitalId, approvalStatus, approvalNotes }) =>
-      hospitalsAPI.approve(hospitalId, { approvalStatus, approvalNotes }),
-    {
-      onSuccess: () => {
-        toast.success("Hospital approval updated successfully");
-        queryClient.invalidateQueries("pending-hospitals");
-        queryClient.invalidateQueries("admin-dashboard");
-      },
-      onError: (error) => {
-        toast.error(
-          error.response?.data?.message || "Failed to update hospital approval"
-        );
-      }
-    }
-  );
-
-  // Approve doctor mutation
-  const approveDoctorMutation = useMutation(
-    ({ doctorId, approvalStatus, approvalNotes }) =>
-      isHospitalAdmin
-        ? adminAPI.approveHospitalDoctor(doctorId, {
-            approvalStatus,
-            approvalNotes
-          })
-        : adminAPI.approveDoctor(doctorId, { approvalStatus, approvalNotes }),
-    {
-      onSuccess: () => {
-        toast.success("Doctor approval updated successfully");
-        queryClient.invalidateQueries("pending-doctors");
-        queryClient.invalidateQueries("hospital-doctors");
-        queryClient.invalidateQueries("admin-dashboard");
-      },
-      onError: (error) => {
-        toast.error(
-          error.response?.data?.message || "Failed to update doctor approval"
-        );
-      }
-    }
-  );
-
-  // Update doctor mutation
-  const updateDoctorMutation = useMutation(
-    ({ doctorId, doctorData }) =>
-      adminAPI.updateHospitalDoctor(doctorId, doctorData),
-    {
-      onSuccess: () => {
-        toast.success("Doctor profile updated successfully");
-        queryClient.invalidateQueries("hospital-doctors");
-        queryClient.invalidateQueries("admin-dashboard");
-      },
-      onError: (error) => {
-        toast.error(
-          error.response?.data?.message || "Failed to update doctor profile"
-        );
-      }
-    }
-  );
-
-  // Remove doctor mutation
-  const removeDoctorMutation = useMutation(
-    (doctorId) => adminAPI.removeHospitalDoctor(doctorId),
-    {
-      onSuccess: () => {
-        toast.success("Doctor removed from hospital successfully");
-        queryClient.invalidateQueries("hospital-doctors");
-        queryClient.invalidateQueries("admin-dashboard");
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.message || "Failed to remove doctor");
-      }
-    }
-  );
-
-  const handleApproveUser = (userId, approvalStatus, approvalNotes = "") => {
-    approveUserMutation.mutate({ userId, approvalStatus, approvalNotes });
+  const handleSuspendDoctor = async (doctorId, suspensionData) => {
+    await suspendDoctorMutation.mutateAsync({ doctorId, suspensionData });
   };
 
-  const handleApproveHospital = (
-    hospitalId,
-    approvalStatus,
-    approvalNotes = ""
-  ) => {
-    approveHospitalMutation.mutate({
-      hospitalId,
-      approvalStatus,
-      approvalNotes
-    });
+  const handleUnsuspendDoctor = async (doctorId) => {
+    await unsuspendDoctorMutation.mutateAsync(doctorId);
   };
 
-  const handleApproveDoctor = (
-    doctorId,
-    approvalStatus,
-    approvalNotes = ""
-  ) => {
-    approveDoctorMutation.mutate({ doctorId, approvalStatus, approvalNotes });
+  const openSuspensionModal = (doctor) => {
+    setSelectedDoctor(doctor);
+    setShowSuspensionModal(true);
   };
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case "approved":
-        return (
-          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-            <CheckCircle className="h-3 w-3 mr-1" />
-            Approved
-          </span>
-        );
-      case "pending":
-        return (
-          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-            <AlertCircle className="h-3 w-3 mr-1" />
-            Pending
-          </span>
-        );
-      case "rejected":
-        return (
-          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-            <XCircle className="h-3 w-3 mr-1" />
-            Rejected
-          </span>
-        );
-      default:
-        return null;
-    }
+  const closeSuspensionModal = () => {
+    setShowSuspensionModal(false);
+    setSelectedDoctor(null);
   };
 
-  const tabs = isHospitalAdmin
-    ? [
-        { id: "dashboard", name: "Dashboard", icon: Activity },
-        { id: "doctors", name: "Pending Doctors", icon: User },
-        { id: "manage-doctors", name: "Manage Doctors", icon: User }
-      ]
-    : [
-        { id: "dashboard", name: "Dashboard", icon: Activity },
-        { id: "users", name: "Pending Users", icon: Users },
-        { id: "hospitals", name: "Pending Hospitals", icon: Building2 },
-        { id: "doctors", name: "Pending Doctors", icon: User }
-      ];
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              {isHospitalAdmin ? "Hospital Admin Panel" : "Admin Panel"}
-            </h1>
-            <p className="text-gray-600 mt-2">
-              {isHospitalAdmin
-                ? "Manage doctor approvals and hospital administration."
-                : "Manage user approvals, hospitals, and system administration."}
-            </p>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Shield className="h-6 w-6 text-primary-600" />
-            <span className="text-sm font-medium text-gray-700">
-              {isHospitalAdmin ? "Hospital Administrator" : "Administrator"}
-            </span>
-          </div>
+  if (!user || (user.role !== "admin" && user.role !== "organization_admin")) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            Access Denied
+          </h1>
+          <p className="text-gray-600">
+            You don't have permission to access this page.
+          </p>
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold text-gray-900 mb-8">Admin Dashboard</h1>
 
       {/* Tabs */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8 px-6">
-            {tabs.map((tab) => (
+      <div className="border-b border-gray-200 mb-6">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab("overview")}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === "overview"
+                ? "border-blue-500 text-blue-600"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            }`}
+          >
+            Overview
+          </button>
+          {user.role === "admin" && (
+            <button
+              onClick={() => setActiveTab("pending")}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === "pending"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              Pending Approvals
+            </button>
+          )}
+          {user.role === "organization_admin" && (
+            <>
               <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
-                  activeTab === tab.id
-                    ? "border-primary-500 text-primary-600"
+                onClick={() => setActiveTab("doctors")}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === "doctors"
+                    ? "border-blue-500 text-blue-600"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
               >
-                <tab.icon className="h-4 w-4" />
-                <span>{tab.name}</span>
+                Manage Doctors
               </button>
-            ))}
-          </nav>
-        </div>
-
-        <div className="p-6">
-          {/* Dashboard Tab */}
-          {activeTab === "dashboard" && (
-            <div className="space-y-6">
-              <h2 className="text-lg font-semibold text-gray-900">
-                {isHospitalAdmin ? "Hospital Overview" : "System Overview"}
-              </h2>
-
-              {isHospitalAdmin ? (
-                // Hospital Admin Dashboard
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                    <div className="flex items-center">
-                      <Building2 className="h-8 w-8 text-blue-600" />
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-blue-600">
-                          Hospital
-                        </p>
-                        <p className="text-lg font-bold text-blue-900">
-                          {dashboardData?.stats?.hospitalName || "N/A"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                    <div className="flex items-center">
-                      <User className="h-8 w-8 text-green-600" />
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-green-600">
-                          Total Doctors
-                        </p>
-                        <p className="text-2xl font-bold text-green-900">
-                          {dashboardData?.stats?.totalDoctors || 0}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-                    <div className="flex items-center">
-                      <AlertCircle className="h-8 w-8 text-yellow-600" />
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-yellow-600">
-                          Pending Doctors
-                        </p>
-                        <p className="text-2xl font-bold text-yellow-900">
-                          {dashboardData?.stats?.pendingDoctors || 0}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
-                    <div className="flex items-center">
-                      <Calendar className="h-8 w-8 text-purple-600" />
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-purple-600">
-                          Total Appointments
-                        </p>
-                        <p className="text-2xl font-bold text-purple-900">
-                          {dashboardData?.stats?.totalAppointments || 0}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                // System Admin Dashboard
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                    <div className="flex items-center">
-                      <Users className="h-8 w-8 text-blue-600" />
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-blue-600">
-                          Total Users
-                        </p>
-                        <p className="text-2xl font-bold text-blue-900">
-                          {dashboardData?.stats?.totalUsers || 0}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-                    <div className="flex items-center">
-                      <AlertCircle className="h-8 w-8 text-yellow-600" />
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-yellow-600">
-                          Pending Users
-                        </p>
-                        <p className="text-2xl font-bold text-yellow-900">
-                          {dashboardData?.stats?.pendingUsers || 0}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                    <div className="flex items-center">
-                      <Building2 className="h-8 w-8 text-green-600" />
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-green-600">
-                          Total Hospitals
-                        </p>
-                        <p className="text-2xl font-bold text-green-900">
-                          {dashboardData?.stats?.totalHospitals || 0}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
-                    <div className="flex items-center">
-                      <User className="h-8 w-8 text-purple-600" />
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-purple-600">
-                          Total Doctors
-                        </p>
-                        <p className="text-2xl font-bold text-purple-900">
-                          {dashboardData?.stats?.totalDoctors || 0}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {!isHospitalAdmin && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-                    <div className="flex items-center">
-                      <Building2 className="h-8 w-8 text-red-600" />
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-red-600">
-                          Pending Hospitals
-                        </p>
-                        <p className="text-2xl font-bold text-red-900">
-                          {dashboardData?.stats?.pendingHospitals || 0}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
-                    <div className="flex items-center">
-                      <User className="h-8 w-8 text-orange-600" />
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-orange-600">
-                          Pending Doctors
-                        </p>
-                        <p className="text-2xl font-bold text-orange-900">
-                          {dashboardData?.stats?.pendingDoctors || 0}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+              <button
+                onClick={() => setActiveTab("suspended")}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === "suspended"
+                    ? "border-blue-500 text-blue-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                Suspended Doctors
+              </button>
+            </>
           )}
-
-          {/* Pending Users Tab */}
-          {activeTab === "users" && (
-            <div className="space-y-6">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Pending User Approvals
-              </h2>
-
-              {usersLoading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-                  <p className="mt-2 text-gray-600">Loading pending users...</p>
-                </div>
-              ) : pendingUsers?.length === 0 ? (
-                <div className="text-center py-8">
-                  <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No pending users
-                  </h3>
-                  <p className="text-gray-600">
-                    All user approvals are up to date.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {pendingUsers?.map((user) => (
-                    <div
-                      key={user._id}
-                      className="border border-gray-200 rounded-lg p-6"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-2">
-                            <h3 className="text-lg font-medium text-gray-900">
-                              {user.profile.firstName} {user.profile.lastName}
-                            </h3>
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 capitalize">
-                              {user.role}
-                            </span>
-                          </div>
-                          <div className="space-y-1 text-sm text-gray-600">
-                            <p>
-                              <Mail className="inline h-4 w-4 mr-1" />
-                              {user.email}
-                            </p>
-                            {user.profile.phone && (
-                              <p>
-                                <Phone className="inline h-4 w-4 mr-1" />
-                                {user.profile.phone}
-                              </p>
-                            )}
-                            <p>
-                              <Clock className="inline h-4 w-4 mr-1" />
-                              Joined{" "}
-                              {new Date(user.createdAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() =>
-                              handleApproveUser(user._id, "approved")
-                            }
-                            disabled={approveUserMutation.isLoading}
-                            className="btn-primary text-sm"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() =>
-                              handleApproveUser(user._id, "rejected")
-                            }
-                            disabled={approveUserMutation.isLoading}
-                            className="btn-secondary text-sm"
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Pending Hospitals Tab */}
-          {activeTab === "hospitals" && (
-            <div className="space-y-6">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Pending Hospital Approvals
-              </h2>
-
-              {hospitalsLoading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-                  <p className="mt-2 text-gray-600">
-                    Loading pending hospitals...
-                  </p>
-                </div>
-              ) : pendingHospitals?.length === 0 ? (
-                <div className="text-center py-8">
-                  <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No pending hospitals
-                  </h3>
-                  <p className="text-gray-600">
-                    All hospital approvals are up to date.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {pendingHospitals?.map((hospital) => (
-                    <div
-                      key={hospital._id}
-                      className="border border-gray-200 rounded-lg p-6"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-2">
-                            <h3 className="text-lg font-medium text-gray-900">
-                              {hospital.name}
-                            </h3>
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 capitalize">
-                              {hospital.type}
-                            </span>
-                          </div>
-                          <div className="space-y-1 text-sm text-gray-600">
-                            <p>
-                              <MapPin className="inline h-4 w-4 mr-1" />
-                              {hospital.address.city}, {hospital.address.state}
-                            </p>
-                            <p>
-                              <Phone className="inline h-4 w-4 mr-1" />
-                              {hospital.contact.phone}
-                            </p>
-                            <p>
-                              <Mail className="inline h-4 w-4 mr-1" />
-                              {hospital.contact.email}
-                            </p>
-                            <p>
-                              <Clock className="inline h-4 w-4 mr-1" />
-                              Submitted{" "}
-                              {new Date(
-                                hospital.createdAt
-                              ).toLocaleDateString()}
-                            </p>
-                            <p>
-                              <User className="inline h-4 w-4 mr-1" />
-                              By: {
-                                hospital.organizationAdmin.profile.firstName
-                              }{" "}
-                              {hospital.organizationAdmin.profile.lastName}
-                            </p>
-                          </div>
-                          {hospital.description && (
-                            <p className="text-sm text-gray-600 mt-2">
-                              {hospital.description}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() =>
-                              handleApproveHospital(hospital._id, "approved")
-                            }
-                            disabled={approveHospitalMutation.isLoading}
-                            className="btn-primary text-sm"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() =>
-                              handleApproveHospital(hospital._id, "rejected")
-                            }
-                            disabled={approveHospitalMutation.isLoading}
-                            className="btn-secondary text-sm"
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Pending Doctors Tab */}
-          {activeTab === "doctors" && (
-            <div className="space-y-6">
-              <h2 className="text-lg font-semibold text-gray-900">
-                {isHospitalAdmin
-                  ? "Pending Doctor Approvals (Your Hospital)"
-                  : "Pending Doctor Approvals"}
-              </h2>
-
-              {doctorsLoading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-                  <p className="mt-2 text-gray-600">
-                    Loading pending doctors...
-                  </p>
-                </div>
-              ) : pendingDoctors?.length === 0 ? (
-                <div className="text-center py-8">
-                  <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No pending doctors
-                  </h3>
-                  <p className="text-gray-600">
-                    {isHospitalAdmin
-                      ? "All doctor approvals for your hospital are up to date."
-                      : "All doctor approvals are up to date."}
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {pendingDoctors?.map((doctor) => (
-                    <div
-                      key={doctor._id}
-                      className="border border-gray-200 rounded-lg p-6"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-2">
-                            <h3 className="text-lg font-medium text-gray-900">
-                              Dr. {doctor.userId.profile.firstName}{" "}
-                              {doctor.userId.profile.lastName}
-                            </h3>
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                              {doctor.specialization}
-                            </span>
-                          </div>
-                          <div className="space-y-1 text-sm text-gray-600">
-                            <p>
-                              <Mail className="inline h-4 w-4 mr-1" />
-                              {doctor.userId.email}
-                            </p>
-                            <p>
-                              <Building2 className="inline h-4 w-4 mr-1" />
-                              {doctor.hospitalId.name}
-                            </p>
-                            <p>
-                              <Clock className="inline h-4 w-4 mr-1" />
-                              {doctor.experience} years experience
-                            </p>
-                            <p>
-                              <Star className="inline h-4 w-4 mr-1" />
-                              License: {doctor.licenseNumber}
-                            </p>
-                            <p>
-                              <Clock className="inline h-4 w-4 mr-1" />
-                              Submitted{" "}
-                              {new Date(doctor.createdAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                          {doctor.bio && (
-                            <p className="text-sm text-gray-600 mt-2">
-                              {doctor.bio}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() =>
-                              handleApproveDoctor(doctor._id, "approved")
-                            }
-                            disabled={approveDoctorMutation.isLoading}
-                            className="btn-primary text-sm"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() =>
-                              handleApproveDoctor(doctor._id, "rejected")
-                            }
-                            disabled={approveDoctorMutation.isLoading}
-                            className="btn-secondary text-sm"
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Manage Doctors Tab */}
-          {activeTab === "manage-doctors" && (
-            <div className="space-y-6">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Manage Doctors in {user?.organization?.name || "Your Hospital"}
-              </h2>
-
-              {hospitalDoctorsLoading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-                  <p className="mt-2 text-gray-600">Loading doctors...</p>
-                </div>
-              ) : hospitalDoctors?.doctors?.length === 0 ? (
-                <div className="text-center py-8">
-                  <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    No doctors found in your hospital.
-                  </h3>
-                  <p className="text-gray-600">
-                    You can add doctors by approving pending doctor requests.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {hospitalDoctors?.doctors?.map((doctor) => (
-                    <div
-                      key={doctor._id}
-                      className="border border-gray-200 rounded-lg p-6"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-2">
-                            <h3 className="text-lg font-medium text-gray-900">
-                              Dr. {doctor.userId.profile.firstName}{" "}
-                              {doctor.userId.profile.lastName}
-                            </h3>
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                              {doctor.specialization}
-                            </span>
-                          </div>
-                          <div className="space-y-1 text-sm text-gray-600">
-                            <p>
-                              <Mail className="inline h-4 w-4 mr-1" />
-                              {doctor.userId.email}
-                            </p>
-                            <p>
-                              <Building2 className="inline h-4 w-4 mr-1" />
-                              {doctor.hospitalId.name}
-                            </p>
-                            <p>
-                              <Clock className="inline h-4 w-4 mr-1" />
-                              {doctor.experience} years experience
-                            </p>
-                            <p>
-                              <Star className="inline h-4 w-4 mr-1" />
-                              License: {doctor.licenseNumber}
-                            </p>
-                            <p>
-                              <Clock className="inline h-4 w-4 mr-1" />
-                              Submitted{" "}
-                              {new Date(doctor.createdAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                          {doctor.bio && (
-                            <p className="text-sm text-gray-600 mt-2">
-                              {doctor.bio}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() =>
-                              handleApproveDoctor(doctor._id, "approved")
-                            }
-                            disabled={approveDoctorMutation.isLoading}
-                            className="btn-primary text-sm"
-                          >
-                            Approve
-                          </button>
-                          <button
-                            onClick={() =>
-                              handleApproveDoctor(doctor._id, "rejected")
-                            }
-                            disabled={approveDoctorMutation.isLoading}
-                            className="btn-secondary text-sm"
-                          >
-                            Reject
-                          </button>
-                          <button
-                            onClick={() =>
-                              removeDoctorMutation.mutate(doctor._id)
-                            }
-                            disabled={removeDoctorMutation.isLoading}
-                            className="btn-danger text-sm"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        </nav>
       </div>
+
+      {/* Tab Content */}
+      {activeTab === "overview" && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {user.role === "admin" && (
+            <div className="bg-white p-6 rounded-lg shadow">
+              <div className="flex items-center">
+                <Clock className="h-8 w-8 text-yellow-500" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">
+                    Pending Users
+                  </p>
+                  <p className="text-2xl font-semibold text-gray-900">
+                    {pendingUsers?.length || 0}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          {user.role === "organization_admin" && (
+            <>
+              <div className="bg-white p-6 rounded-lg shadow">
+                <div className="flex items-center">
+                  <Users className="h-8 w-8 text-blue-500" />
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">
+                      Total Doctors
+                    </p>
+                    <p className="text-2xl font-semibold text-gray-900">
+                      {hospitalDoctors?.doctors?.length || 0}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow">
+                <div className="flex items-center">
+                  <UserCheck className="h-8 w-8 text-green-500" />
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">
+                      Active Doctors
+                    </p>
+                    <p className="text-2xl font-semibold text-gray-900">
+                      {(hospitalDoctors?.doctors?.length || 0) -
+                        (suspendedDoctors?.count || 0)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow">
+                <div className="flex items-center">
+                  <UserX className="h-8 w-8 text-red-500" />
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">
+                      Suspended Doctors
+                    </p>
+                    <p className="text-2xl font-semibold text-gray-900">
+                      {suspendedDoctors?.count || 0}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {activeTab === "pending" && user.role === "admin" && (
+        <div className="bg-white rounded-lg shadow">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-medium text-gray-900">
+              Pending User Approvals
+            </h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    User
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Role
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Email
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {pendingUsers?.map((user) => (
+                  <tr key={user._id}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {user.profile?.firstName} {user.profile?.lastName}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                        {user.role}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {user.email}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => approveUserMutation.mutate(user._id)}
+                          disabled={approveUserMutation.isLoading}
+                          className="text-green-600 hover:text-green-900"
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => rejectUserMutation.mutate(user._id)}
+                          disabled={rejectUserMutation.isLoading}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "doctors" && user.role === "organization_admin" && (
+        <div className="bg-white rounded-lg shadow">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-medium text-gray-900">
+              Hospital Doctors
+            </h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Doctor
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Specialization
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    License
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {hospitalDoctors?.doctors?.map((doctor) => (
+                  <tr key={doctor._id}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {doctor.user?.profile?.firstName}{" "}
+                        {doctor.user?.profile?.lastName}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {doctor.user?.email}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {doctor.specialization}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {doctor.licenseNumber}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          doctor.user?.accountStatus === "suspended"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-green-100 text-green-800"
+                        }`}
+                      >
+                        {doctor.user?.accountStatus === "suspended"
+                          ? "Suspended"
+                          : "Active"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => openSuspensionModal(doctor)}
+                          className="text-red-600 hover:text-red-900"
+                          title="Suspend Doctor"
+                        >
+                          <Ban className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "suspended" && user.role === "organization_admin" && (
+        <div className="bg-white rounded-lg shadow">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-medium text-gray-900">
+              Suspended Doctors
+            </h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Doctor
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Specialization
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Suspension Reason
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Suspended Until
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {suspendedDoctors?.suspendedDoctors?.map((doctor) => (
+                  <tr key={doctor._id}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {doctor.user?.profile?.firstName}{" "}
+                        {doctor.user?.profile?.lastName}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {doctor.user?.email}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {doctor.specialization}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {doctor.user?.suspensionDetails?.suspensionReason}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {doctor.user?.suspensionDetails?.suspensionExpiry
+                        ? new Date(
+                            doctor.user.suspensionDetails.suspensionExpiry
+                          ).toLocaleDateString()
+                        : "Indefinite"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleUnsuspendDoctor(doctor._id)}
+                          disabled={unsuspendDoctorMutation.isLoading}
+                          className="text-green-600 hover:text-green-900"
+                          title="Unsuspend Doctor"
+                        >
+                          <RotateCcw className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Suspension Modal */}
+      <DoctorSuspensionModal
+        isOpen={showSuspensionModal}
+        onClose={closeSuspensionModal}
+        doctor={selectedDoctor}
+        onSuspend={handleSuspendDoctor}
+        isSuspending={suspendDoctorMutation.isLoading}
+      />
     </div>
   );
 };

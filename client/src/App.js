@@ -15,6 +15,7 @@ import Reminders from "./pages/Reminders";
 import Medicines from "./pages/Medicines";
 import PrescriptionScanner from "./pages/PrescriptionScanner";
 import PendingApproval from "./pages/PendingApproval";
+import HealthHistory from "./pages/HealthHistory";
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -55,6 +56,7 @@ function AppContent() {
         <Route path="/medicines" element={<Medicines />} />
         <Route path="/prescription-scanner" element={<PrescriptionScanner />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/health-history" element={<HealthHistory />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
