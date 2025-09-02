@@ -37,61 +37,55 @@ const Medicines = () => {
   } = useForm();
 
   // Fetch medicines
-  const { data: medicinesData, isLoading: medicinesLoading } = useQuery(
-    ["medicines", searchTerm, selectedCategory],
-    () =>
+  const { data: medicinesData, isLoading: medicinesLoading } = useQuery({
+    queryKey: ["medicines", searchTerm, selectedCategory],
+    queryFn: () =>
       medicinesAPI.getAll({
         search: searchTerm || undefined,
         category: selectedCategory || undefined
       }),
-    {
-      refetchInterval: 60000
-    }
-  );
+    refetchInterval: 60000
+  });
 
   // Fetch categories
-  const { data: categoriesData } = useQuery("medicine-categories", () =>
-    medicinesAPI.getCategories()
-  );
+  const { data: categoriesData } = useQuery({
+    queryKey: ["medicine-categories"],
+    queryFn: () => medicinesAPI.getCategories()
+  });
 
   // Mutations
-  const createMedicineMutation = useMutation(
-    (data) => medicinesAPI.create(data),
-    {
-      onSuccess: () => {
-        toast.success("Medicine added successfully!");
-        setShowCreateModal(false);
-        reset();
-        queryClient.invalidateQueries("medicines");
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.message || "Failed to add medicine");
-      }
+  const createMedicineMutation = useMutation({
+    mutationFn: (data) => medicinesAPI.create(data),
+    onSuccess: () => {
+      toast.success("Medicine added successfully!");
+      setShowCreateModal(false);
+      reset();
+      queryClient.invalidateQueries(["medicines"]);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to add medicine");
     }
-  );
+  });
 
-  const updateMedicineMutation = useMutation(
-    ({ id, data }) => medicinesAPI.update(id, data),
-    {
-      onSuccess: () => {
-        toast.success("Medicine updated successfully!");
-        setShowEditModal(false);
-        setSelectedMedicine(null);
-        reset();
-        queryClient.invalidateQueries("medicines");
-      },
-      onError: (error) => {
-        toast.error(
-          error.response?.data?.message || "Failed to update medicine"
-        );
-      }
+  const updateMedicineMutation = useMutation({
+    mutationFn: ({ id, data }) => medicinesAPI.update(id, data),
+    onSuccess: () => {
+      toast.success("Medicine updated successfully!");
+      setShowEditModal(false);
+      setSelectedMedicine(null);
+      reset();
+      queryClient.invalidateQueries(["medicines"]);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to update medicine");
     }
-  );
+  });
 
-  const deleteMedicineMutation = useMutation((id) => medicinesAPI.delete(id), {
+  const deleteMedicineMutation = useMutation({
+    mutationFn: (id) => medicinesAPI.delete(id),
     onSuccess: () => {
       toast.success("Medicine deleted!");
-      queryClient.invalidateQueries("medicines");
+      queryClient.invalidateQueries(["medicines"]);
     },
     onError: (error) => {
       toast.error(error.response?.data?.message || "Failed to delete medicine");

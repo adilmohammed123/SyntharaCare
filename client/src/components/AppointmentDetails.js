@@ -20,50 +20,45 @@ function AppointmentDetails({ appointment, isOpen, onClose, onStatusChange }) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const updateStatusMutation = useMutation(
-    (data) => appointmentsAPI.updateStatus(data.id, data.status),
-    {
-      onSuccess: () => {
-        toast.success("Appointment status updated!");
-        queryClient.invalidateQueries("appointments");
-        onStatusChange && onStatusChange();
-      },
-      onError: (error) => {
-        toast.error(error.response?.data?.message || "Failed to update status");
-      }
+  const updateStatusMutation = useMutation({
+    mutationFn: (data) => appointmentsAPI.updateStatus(data.id, data.status),
+    onSuccess: () => {
+      toast.success("Appointment status updated!");
+      queryClient.invalidateQueries(["appointments"]);
+      onStatusChange && onStatusChange();
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to update status");
     }
-  );
+  });
 
-  const updateSessionPhaseMutation = useMutation(
-    (data) => appointmentsAPI.updateSessionPhase(data.id, data.sessionPhase),
-    {
-      onSuccess: () => {
-        toast.success("Session phase updated!");
-        queryClient.invalidateQueries("appointments");
-      },
-      onError: (error) => {
-        toast.error(
-          error.response?.data?.message || "Failed to update session phase"
-        );
-      }
+  const updateSessionPhaseMutation = useMutation({
+    mutationFn: (data) =>
+      appointmentsAPI.updateSessionPhase(data.id, data.sessionPhase),
+    onSuccess: () => {
+      toast.success("Session phase updated!");
+      queryClient.invalidateQueries(["appointments"]);
+    },
+    onError: (error) => {
+      toast.error(
+        error.response?.data?.message || "Failed to update session phase"
+      );
     }
-  );
+  });
 
-  const cancelAppointmentMutation = useMutation(
-    (id) => appointmentsAPI.cancel(id),
-    {
-      onSuccess: () => {
-        toast.success("Appointment cancelled!");
-        queryClient.invalidateQueries("appointments");
-        onClose();
-      },
-      onError: (error) => {
-        toast.error(
-          error.response?.data?.message || "Failed to cancel appointment"
-        );
-      }
+  const cancelAppointmentMutation = useMutation({
+    mutationFn: (id) => appointmentsAPI.cancel(id),
+    onSuccess: () => {
+      toast.success("Appointment cancelled!");
+      queryClient.invalidateQueries(["appointments"]);
+      onClose();
+    },
+    onError: (error) => {
+      toast.error(
+        error.response?.data?.message || "Failed to cancel appointment"
+      );
     }
-  );
+  });
 
   const getStatusColor = (status) => {
     switch (status) {

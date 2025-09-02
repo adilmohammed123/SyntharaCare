@@ -24,47 +24,37 @@ const Dashboard = () => {
   const { user } = useAuth();
 
   // Fetch dashboard data
-  const { data: appointmentsData } = useQuery(
-    "dashboard-appointments",
-    () => appointmentsAPI.getAll({ limit: 5 }),
-    {
-      refetchInterval: 30000
-    }
-  );
+  const { data: appointmentsData } = useQuery({
+    queryKey: ["dashboard-appointments"],
+    queryFn: () => appointmentsAPI.getAll({ limit: 5 }),
+    refetchInterval: 30000
+  });
 
-  const { data: diagnosesData } = useQuery(
-    "dashboard-diagnoses",
-    () => diagnosesAPI.getAll({ limit: 5 }),
-    {
-      refetchInterval: 60000
-    }
-  );
+  const { data: diagnosesData } = useQuery({
+    queryKey: ["dashboard-diagnoses"],
+    queryFn: () => diagnosesAPI.getAll({ limit: 5 }),
+    refetchInterval: 60000
+  });
 
-  const { data: remindersData } = useQuery(
-    "dashboard-reminders",
-    () => remindersAPI.getTodays(),
-    {
-      refetchInterval: 60000
-    }
-  );
+  const { data: remindersData } = useQuery({
+    queryKey: ["dashboard-reminders"],
+    queryFn: () => remindersAPI.getTodays(),
+    refetchInterval: 60000
+  });
 
-  const { data: medicinesData } = useQuery(
-    "dashboard-medicines",
-    () => medicinesAPI.getLowStock(),
-    {
-      refetchInterval: 300000
-    }
-  );
+  const { data: medicinesData } = useQuery({
+    queryKey: ["dashboard-medicines"],
+    queryFn: () => medicinesAPI.getLowStock(),
+    refetchInterval: 300000
+  });
 
   // Fetch doctors (for doctor profile check)
-  const { data: doctorsData } = useQuery(
-    "dashboard-doctors",
-    () => doctorsAPI.getAll({ limit: 1 }),
-    {
-      refetchInterval: 300000,
-      enabled: user?.role === "doctor"
-    }
-  );
+  const { data: doctorsData } = useQuery({
+    queryKey: ["dashboard-doctors"],
+    queryFn: () => doctorsAPI.getAll({ limit: 1 }),
+    refetchInterval: 300000,
+    enabled: user?.role === "doctor"
+  });
 
   const getStats = () => {
     const appointments = appointmentsData?.appointments || [];

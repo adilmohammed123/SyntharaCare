@@ -31,46 +31,38 @@ const Hospitals = () => {
   const [selectedHospital, setSelectedHospital] = useState(null);
 
   // Fetch hospitals
-  const { data: hospitalsData, isLoading: hospitalsLoading } = useQuery(
-    ["hospitals", searchTerm, selectedType, selectedCity],
-    () =>
+  const { data: hospitalsData, isLoading: hospitalsLoading } = useQuery({
+    queryKey: ["hospitals", searchTerm, selectedType, selectedCity],
+    queryFn: () =>
       hospitalsAPI.getAll({
         search: searchTerm || undefined,
         type: selectedType || undefined,
         city: selectedCity || undefined
       }),
-    {
-      refetchInterval: 60000 // Refetch every minute
-    }
-  );
+    refetchInterval: 60000 // Refetch every minute
+  });
 
   // Fetch my hospitals for organization admin
-  const { data: myHospitals } = useQuery(
-    ["my-hospitals"],
-    () => hospitalsAPI.getMyHospitals(),
-    {
-      enabled: user?.role === "organization_admin",
-      refetchInterval: 60000
-    }
-  );
+  const { data: myHospitals } = useQuery({
+    queryKey: ["my-hospitals"],
+    queryFn: () => hospitalsAPI.getMyHospitals(),
+    enabled: user?.role === "organization_admin",
+    refetchInterval: 60000
+  });
 
   // Create hospital mutation
-  const createHospitalMutation = useMutation(
-    (hospitalData) => hospitalsAPI.create(hospitalData),
-    {
-      onSuccess: () => {
-        toast.success("Hospital created successfully and pending approval");
-        setShowCreateModal(false);
-        queryClient.invalidateQueries("hospitals");
-        queryClient.invalidateQueries("my-hospitals");
-      },
-      onError: (error) => {
-        toast.error(
-          error.response?.data?.message || "Failed to create hospital"
-        );
-      }
+  const createHospitalMutation = useMutation({
+    mutationFn: (hospitalData) => hospitalsAPI.create(hospitalData),
+    onSuccess: () => {
+      toast.success("Hospital created successfully and pending approval");
+      setShowCreateModal(false);
+      queryClient.invalidateQueries(["hospitals"]);
+      queryClient.invalidateQueries(["my-hospitals"]);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to create hospital");
     }
-  );
+  });
 
   const hospitalTypes = [
     "public",

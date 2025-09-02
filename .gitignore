@@ -5,3 +5,5 @@
 /client/build
 /client/.env
 /server/.env
+.env
+/client/config-overrides.js

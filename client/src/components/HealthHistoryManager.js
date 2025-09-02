@@ -35,40 +35,37 @@ const HealthHistoryManager = ({
   const [selectedCategory, setSelectedCategory] = useState("");
 
   // Fetch health history
-  const { data: healthHistoryData, isLoading } = useQuery(
-    ["health-history", searchTerm, selectedCategory],
-    () =>
+  const { data: healthHistoryData, isLoading } = useQuery({
+    queryKey: ["health-history", searchTerm, selectedCategory],
+    queryFn: () =>
       healthHistoryAPI.getAll({
         search: searchTerm,
         category: selectedCategory
       }),
-    {
-      enabled: user?.role === "patient"
-    }
-  );
+    enabled: user?.role === "patient"
+  });
 
   // Upload mutation
-  const uploadMutation = useMutation(
-    (formData) => healthHistoryAPI.upload(formData),
-    {
-      onSuccess: () => {
-        toast.success("Health history uploaded successfully!");
-        queryClient.invalidateQueries("health-history");
-        setShowUploadModal(false);
-      },
-      onError: (error) => {
-        toast.error(
-          error.response?.data?.message || "Failed to upload health history"
-        );
-      }
+  const uploadMutation = useMutation({
+    mutationFn: (formData) => healthHistoryAPI.upload(formData),
+    onSuccess: () => {
+      toast.success("Health history uploaded successfully!");
+      queryClient.invalidateQueries(["health-history"]);
+      setShowUploadModal(false);
+    },
+    onError: (error) => {
+      toast.error(
+        error.response?.data?.message || "Failed to upload health history"
+      );
     }
-  );
+  });
 
   // Delete mutation
-  const deleteMutation = useMutation((id) => healthHistoryAPI.delete(id), {
+  const deleteMutation = useMutation({
+    mutationFn: (id) => healthHistoryAPI.delete(id),
     onSuccess: () => {
       toast.success("Health history deleted successfully!");
-      queryClient.invalidateQueries("health-history");
+      queryClient.invalidateQueries(["health-history"]);
     },
     onError: (error) => {
       toast.error(

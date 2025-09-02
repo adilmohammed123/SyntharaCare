@@ -158,6 +158,13 @@ const hospitalSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     }
+    // Organization admin who manages this hospital
+    // Temporarily commented out until database migration is complete
+    // organizationAdmin: {
+    //   type: mongoose.Schema.Types.ObjectId,
+    //   ref: "User",
+    //   required: false
+    // }
   },
   {
     timestamps: true

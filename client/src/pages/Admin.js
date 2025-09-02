@@ -48,7 +48,8 @@ const Admin = () => {
 
   // Mutations
   const approveUserMutation = useMutation({
-    mutationFn: (userId) => adminAPI.approveUser(userId),
+    mutationFn: (userId) =>
+      adminAPI.approveUser(userId, { approvalStatus: "approved" }),
     onSuccess: () => {
       queryClient.invalidateQueries(["pendingUsers"]);
       toast.success("User approved successfully");
@@ -59,7 +60,8 @@ const Admin = () => {
   });
 
   const rejectUserMutation = useMutation({
-    mutationFn: (userId) => adminAPI.rejectUser(userId),
+    mutationFn: (userId) =>
+      adminAPI.approveUser(userId, { approvalStatus: "rejected" }),
     onSuccess: () => {
       queryClient.invalidateQueries(["pendingUsers"]);
       toast.success("User rejected successfully");
@@ -97,7 +99,8 @@ const Admin = () => {
   });
 
   const approveDoctorMutation = useMutation({
-    mutationFn: (doctorId) => adminAPI.approveDoctor(doctorId),
+    mutationFn: (doctorId) =>
+      adminAPI.approveDoctor(doctorId, { approvalStatus: "approved" }),
     onSuccess: () => {
       queryClient.invalidateQueries(["hospitalDoctors"]);
       toast.success("Doctor approved successfully");

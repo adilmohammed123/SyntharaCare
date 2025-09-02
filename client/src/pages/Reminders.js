@@ -34,91 +34,80 @@ const Reminders = () => {
   } = useForm();
 
   // Fetch reminders
-  const { data: remindersData, isLoading: remindersLoading } = useQuery(
-    ["reminders", filterStatus, searchTerm],
-    () =>
+  const { data: remindersData, isLoading: remindersLoading } = useQuery({
+    queryKey: ["reminders", filterStatus, searchTerm],
+    queryFn: () =>
       remindersAPI.getAll({
         status: filterStatus !== "all" ? filterStatus : undefined,
         search: searchTerm || undefined
       }),
-    {
-      refetchInterval: 30000 // Refetch every 30 seconds
-    }
-  );
+    refetchInterval: 30000 // Refetch every 30 seconds
+  });
 
   // Fetch today's reminders
-  const { data: todayRemindersData } = useQuery(
-    "today-reminders",
-    () => remindersAPI.getTodays(),
-    {
-      refetchInterval: 60000 // Refetch every minute
-    }
-  );
+  const { data: todayRemindersData } = useQuery({
+    queryKey: ["today-reminders"],
+    queryFn: () => remindersAPI.getTodays(),
+    refetchInterval: 60000 // Refetch every minute
+  });
 
   // Fetch medicines for dropdown
-  useQuery("medicines", () => medicinesAPI.getAll(), {
+  useQuery({
+    queryKey: ["medicines"],
+    queryFn: () => medicinesAPI.getAll(),
     enabled: showCreateModal || showEditModal
   });
 
   // Mutations
-  const createReminderMutation = useMutation(
-    (data) => remindersAPI.create(data),
-    {
-      onSuccess: () => {
-        toast.success("Reminder created successfully!");
-        setShowCreateModal(false);
-        reset();
-        queryClient.invalidateQueries("reminders");
-        queryClient.invalidateQueries("today-reminders");
-      },
-      onError: (error) => {
-        toast.error(
-          error.response?.data?.message || "Failed to create reminder"
-        );
-      }
+  const createReminderMutation = useMutation({
+    mutationFn: (data) => remindersAPI.create(data),
+    onSuccess: () => {
+      toast.success("Reminder created successfully!");
+      setShowCreateModal(false);
+      reset();
+      queryClient.invalidateQueries(["reminders"]);
+      queryClient.invalidateQueries(["today-reminders"]);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to create reminder");
     }
-  );
+  });
 
-  const updateReminderMutation = useMutation(
-    ({ id, data }) => remindersAPI.update(id, data),
-    {
-      onSuccess: () => {
-        toast.success("Reminder updated successfully!");
-        setShowEditModal(false);
-        setSelectedReminder(null);
-        reset();
-        queryClient.invalidateQueries("reminders");
-        queryClient.invalidateQueries("today-reminders");
-      },
-      onError: (error) => {
-        toast.error(
-          error.response?.data?.message || "Failed to update reminder"
-        );
-      }
+  const updateReminderMutation = useMutation({
+    mutationFn: ({ id, data }) => remindersAPI.update(id, data),
+    onSuccess: () => {
+      toast.success("Reminder updated successfully!");
+      setShowEditModal(false);
+      setSelectedReminder(null);
+      reset();
+      queryClient.invalidateQueries(["reminders"]);
+      queryClient.invalidateQueries(["today-reminders"]);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to update reminder");
     }
-  );
+  });
 
-  const markDoseMutation = useMutation(
-    ({ id, action }) => remindersAPI.markDose(id, action),
-    {
-      onSuccess: () => {
-        toast.success("Dose status updated!");
-        queryClient.invalidateQueries("reminders");
-        queryClient.invalidateQueries("today-reminders");
-      },
-      onError: (error) => {
-        toast.error(
-          error.response?.data?.message || "Failed to update dose status"
-        );
-      }
+  const markDoseMutation = useMutation({
+    mutationFn: ({ id, action }) => remindersAPI.markDose(id, action),
+    onSuccess: () => {
+      toast.success("Dose status updated!");
+      queryClient.invalidateQueries(["reminders"]);
+      queryClient.invalidateQueries(["today-reminders"]);
+    },
+    onError: (error) => {
+      toast.error(
+        error.response?.data?.message || "Failed to update dose status"
+      );
     }
-  );
+  });
 
-  const deleteReminderMutation = useMutation((id) => remindersAPI.delete(id), {
+  const deleteReminderMutation = useMutation({
+    mutationFn: (id) => remindersAPI.delete(id),
     onSuccess: () => {
       toast.success("Reminder deleted!");
-      queryClient.invalidateQueries("reminders");
-      queryClient.invalidateQueries("today-reminders");
+      queryClient.invalidateQueries(["reminders"]);
+      queryClient.invalidateQueries(["today-reminders"]);
     },
     onError: (error) => {
       toast.error(error.response?.data?.message || "Failed to delete reminder");

@@ -35,27 +35,23 @@ const Doctors = () => {
   }, []);
 
   // Fetch doctors
-  const { data: doctorsData, isLoading: doctorsLoading } = useQuery(
-    ["doctors", searchTerm, selectedSpecialization, selectedHospital],
-    () =>
+  const { data: doctorsData, isLoading: doctorsLoading } = useQuery({
+    queryKey: ["doctors", searchTerm, selectedSpecialization, selectedHospital],
+    queryFn: () =>
       doctorsAPI.getAll({
         search: searchTerm || undefined,
         specialization: selectedSpecialization || undefined,
         hospitalId: selectedHospital || undefined
       }),
-    {
-      refetchInterval: 60000 // Refetch every minute
-    }
-  );
+    refetchInterval: 60000 // Refetch every minute
+  });
 
   // Fetch hospitals for filter
-  const { data: hospitalsData } = useQuery(
-    ["hospitals"],
-    () => hospitalsAPI.getAll({ limit: 100 }),
-    {
-      refetchInterval: 300000 // Refetch every 5 minutes
-    }
-  );
+  const { data: hospitalsData } = useQuery({
+    queryKey: ["hospitals"],
+    queryFn: () => hospitalsAPI.getAll({ limit: 100 }),
+    refetchInterval: 300000 // Refetch every 5 minutes
+  });
 
   // Fetch specializations
   const specializations = [
@@ -74,23 +70,21 @@ const Doctors = () => {
   ];
 
   // Quick setup mutation
-  const quickSetupMutation = useMutation(
-    (hospitalId) => doctorsAPI.quickSetup({ hospitalId }),
-    {
-      onSuccess: () => {
-        toast.success(
-          "Doctor profile created successfully and pending approval!"
-        );
-        setShowQuickSetupModal(false);
-        queryClient.invalidateQueries("doctors");
-      },
-      onError: (error) => {
-        toast.error(
-          error.response?.data?.message || "Failed to create doctor profile"
-        );
-      }
+  const quickSetupMutation = useMutation({
+    mutationFn: (hospitalId) => doctorsAPI.quickSetup({ hospitalId }),
+    onSuccess: () => {
+      toast.success(
+        "Doctor profile created successfully and pending approval!"
+      );
+      setShowQuickSetupModal(false);
+      queryClient.invalidateQueries(["doctors"]);
+    },
+    onError: (error) => {
+      toast.error(
+        error.response?.data?.message || "Failed to create doctor profile"
+      );
     }
-  );
+  });
 
   const handleDoctorClick = (doctor) => {
     setSelectedDoctor(doctor);

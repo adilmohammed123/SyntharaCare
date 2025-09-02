@@ -42,38 +42,30 @@ const Profile = () => {
   } = useForm();
 
   // Mutations
-  const updateProfileMutation = useMutation(
-    (data) => authAPI.updateProfile(data),
-    {
-      onSuccess: (response) => {
-        toast.success("Profile updated successfully!");
-        updateUser(response);
-        setIsEditing(false);
-        queryClient.invalidateQueries("user");
-      },
-      onError: (error) => {
-        toast.error(
-          error.response?.data?.message || "Failed to update profile"
-        );
-      }
+  const updateProfileMutation = useMutation({
+    mutationFn: (data) => authAPI.updateProfile(data),
+    onSuccess: (response) => {
+      toast.success("Profile updated successfully!");
+      updateUser(response);
+      setIsEditing(false);
+      queryClient.invalidateQueries(["user"]);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to update profile");
     }
-  );
+  });
 
-  const updatePasswordMutation = useMutation(
-    (data) => authAPI.updatePassword(data),
-    {
-      onSuccess: () => {
-        toast.success("Password updated successfully!");
-        setShowPasswordModal(false);
-        resetPassword();
-      },
-      onError: (error) => {
-        toast.error(
-          error.response?.data?.message || "Failed to update password"
-        );
-      }
+  const updatePasswordMutation = useMutation({
+    mutationFn: (data) => authAPI.updatePassword(data),
+    onSuccess: () => {
+      toast.success("Password updated successfully!");
+      setShowPasswordModal(false);
+      resetPassword();
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to update password");
     }
-  );
+  });
 
   const handleEditClick = () => {
     setIsEditing(true);

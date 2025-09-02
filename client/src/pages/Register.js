@@ -23,14 +23,12 @@ const Register = () => {
   const selectedRole = watch("role");
 
   // Fetch approved hospitals for doctor and hospital admin registration
-  const { data: hospitalsData, isLoading: hospitalsLoading } = useQuery(
-    ["approved-hospitals"],
-    () => hospitalsAPI.getAll({ approvalStatus: "approved", limit: 100 }),
-    {
-      enabled:
-        selectedRole === "doctor" || selectedRole === "organization_admin" // Enable when doctor or hospital admin role is selected
-    }
-  );
+  const { data: hospitalsData, isLoading: hospitalsLoading } = useQuery({
+    queryKey: ["approved-hospitals"],
+    queryFn: () =>
+      hospitalsAPI.getAll({ approvalStatus: "approved", limit: 100 }),
+    enabled: selectedRole === "doctor" || selectedRole === "organization_admin" // Enable when doctor or hospital admin role is selected
+  });
 
   const password = watch("password");
 

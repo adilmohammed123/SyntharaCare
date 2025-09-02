@@ -38,46 +38,40 @@ const Diagnoses = () => {
   } = useForm();
 
   // Fetch diagnoses
-  const { data: diagnosesData, isLoading: diagnosesLoading } = useQuery(
-    ["diagnoses", searchTerm, filterSeverity],
-    () =>
+  const { data: diagnosesData, isLoading: diagnosesLoading } = useQuery({
+    queryKey: ["diagnoses", searchTerm, filterSeverity],
+    queryFn: () =>
       diagnosesAPI.getAll({
         search: searchTerm || undefined,
         severity: filterSeverity !== "all" ? filterSeverity : undefined
       }),
-    {
-      refetchInterval: 60000
-    }
-  );
+    refetchInterval: 60000
+  });
 
   // Fetch appointments for creating diagnoses
-  const { data: appointmentsData } = useQuery(
-    "appointments-for-diagnosis",
-    () => appointmentsAPI.getAll({ status: "completed" }),
-    {
-      enabled: showCreateModal
-    }
-  );
+  const { data: appointmentsData } = useQuery({
+    queryKey: ["appointments-for-diagnosis"],
+    queryFn: () => appointmentsAPI.getAll({ status: "completed" }),
+    enabled: showCreateModal
+  });
 
   // Mutations
-  const createDiagnosisMutation = useMutation(
-    (data) => diagnosesAPI.create(data),
-    {
-      onSuccess: () => {
-        toast.success("Diagnosis created successfully!");
-        setShowCreateModal(false);
-        reset();
-        setAudioBlob(null);
-        queryClient.invalidateQueries("diagnoses");
-      },
-      onError: (error) => {
-        toast.error(
-          error.response?.data?.message || "Failed to create diagnosis"
-        );
-        queryClient.invalidateQueries("diagnoses");
-      }
+  const createDiagnosisMutation = useMutation({
+    mutationFn: (data) => diagnosesAPI.create(data),
+    onSuccess: () => {
+      toast.success("Diagnosis created successfully!");
+      setShowCreateModal(false);
+      reset();
+      setAudioBlob(null);
+      queryClient.invalidateQueries(["diagnoses"]);
+    },
+    onError: (error) => {
+      toast.error(
+        error.response?.data?.message || "Failed to create diagnosis"
+      );
+      queryClient.invalidateQueries(["diagnoses"]);
     }
-  );
+  });
 
   const handleCreateDiagnosis = (data) => {
     console.log("Creating diagnosis with data:", data);
