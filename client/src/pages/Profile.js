@@ -124,15 +124,6 @@ const Profile = () => {
             <p className="text-gray-600 mt-2">
               Manage your account information and settings.
             </p>
-            {user?.approvalStatus !== "approved" && (
-              <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-sm text-yellow-800">
-                  <strong>Note:</strong> Your account is currently{" "}
-                  {user?.approvalStatus}. You can still update your profile
-                  while waiting for approval.
-                </p>
-              </div>
-            )}
           </div>
           {!isEditing && (
             <button

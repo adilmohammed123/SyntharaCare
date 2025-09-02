@@ -28,7 +28,7 @@ const DoctorApprovalBanner = () => {
       return {
         title: "Pending Hospital Admin Approval",
         message:
-          "Your account is under review. You have limited access until approved.",
+          "Your account is under review. Please complete your profile and wait for approval.",
         icon: Clock,
         color: "bg-yellow-50 border-yellow-200 text-yellow-800",
         status: "pending"
@@ -59,9 +59,7 @@ const DoctorApprovalBanner = () => {
 
           {info.status === "pending" && (
             <div className="mt-3">
-              <div className="text-xs font-medium mb-2">
-                Current Access Level:
-              </div>
+              <div className="text-xs font-medium mb-2">Current Status:</div>
               <div className="space-y-2 text-xs">
                 <div className="flex items-center">
                   <CheckCircle className="h-3 w-3 text-green-500 mr-2" />
@@ -72,20 +70,8 @@ const DoctorApprovalBanner = () => {
                   <span>View hospital information</span>
                 </div>
                 <div className="flex items-center">
-                  <Shield className="h-3 w-3 text-red-500 mr-2" />
-                  <span className="text-red-600">Cannot view patient data</span>
-                </div>
-                <div className="flex items-center">
-                  <Shield className="h-3 w-3 text-red-500 mr-2" />
-                  <span className="text-red-600">
-                    Cannot manage appointments
-                  </span>
-                </div>
-                <div className="flex items-center">
-                  <Shield className="h-3 w-3 text-red-500 mr-2" />
-                  <span className="text-red-600">
-                    Cannot access admin features
-                  </span>
+                  <CheckCircle className="h-3 w-3 text-green-500 mr-2" />
+                  <span>Access all system features</span>
                 </div>
               </div>
 

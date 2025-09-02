@@ -4,11 +4,7 @@ const { body, validationResult } = require("express-validator");
 const Appointment = require("../models/Appointment");
 const Doctor = require("../models/Doctor");
 const Hospital = require("../models/Hospital");
-const {
-  auth,
-  authorize,
-  requireDoctorApproval
-} = require("../middleware/auth");
+const { auth, authorize } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -18,7 +14,6 @@ const router = express.Router();
 router.post(
   "/",
   auth,
-  requireDoctorApproval,
   [
     body("hospitalId").isMongoId().withMessage("Hospital ID is required"),
     body("doctorId").isMongoId(),
@@ -45,24 +40,20 @@ router.post(
         type = "consultation"
       } = req.body;
 
-      // Check if hospital exists and is approved
+      // Check if hospital exists and is active
       const hospital = await Hospital.findById(hospitalId);
-      if (
-        !hospital ||
-        hospital.approvalStatus !== "approved" ||
-        !hospital.isActive
-      ) {
+      if (!hospital || !hospital.isActive) {
         return res
           .status(404)
-          .json({ message: "Hospital not found or not approved" });
+          .json({ message: "Hospital not found or not active" });
       }
 
-      // Check if doctor exists, is available, and belongs to the selected hospital
+      // Check if doctor exists and is available
       const doctor = await Doctor.findById(doctorId);
-      if (!doctor || !doctor.isActive || doctor.approvalStatus !== "approved") {
+      if (!doctor || !doctor.isActive) {
         return res
           .status(404)
-          .json({ message: "Doctor not found or not approved" });
+          .json({ message: "Doctor not found or not active" });
       }
 
       // Verify doctor belongs to the selected hospital
@@ -151,7 +142,7 @@ router.post(
 // @route   GET /api/appointments
 // @desc    Get appointments for current user
 // @access  Private
-router.get("/", auth, requireDoctorApproval, async (req, res) => {
+router.get("/", auth, async (req, res) => {
   try {
     const { page = 1, limit = 10, status, date } = req.query;
 
@@ -235,7 +226,7 @@ router.get("/", auth, requireDoctorApproval, async (req, res) => {
 // @route   GET /api/appointments/:id
 // @desc    Get appointment by ID
 // @access  Private
-router.get("/:id", auth, requireDoctorApproval, async (req, res) => {
+router.get("/:id", auth, async (req, res) => {
   try {
     const appointment = await Appointment.findById(req.params.id)
       .populate("patientId", "profile.firstName profile.lastName email")
@@ -297,7 +288,6 @@ router.get("/:id", auth, requireDoctorApproval, async (req, res) => {
 router.put(
   "/:id/status",
   auth,
-  requireDoctorApproval,
   [
     body("status").isIn([
       "scheduled",
@@ -483,7 +473,7 @@ router.get("/:id/test", auth, async (req, res) => {
 // @route   DELETE /api/appointments/:id
 // @desc    Cancel appointment
 // @access  Private
-router.delete("/:id", auth, requireDoctorApproval, async (req, res) => {
+router.delete("/:id", auth, async (req, res) => {
   try {
     const appointment = await Appointment.findById(req.params.id);
 

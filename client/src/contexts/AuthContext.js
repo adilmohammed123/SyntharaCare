@@ -26,17 +26,18 @@ export const AuthProvider = ({ children }) => {
       if (token) {
         api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
         const response = await api.get("/api/auth/me");
-        setUser(response);
+        setUser(response.data || response);
 
-        // Show appropriate message for doctors based on approval status
-        if (response.role === "doctor") {
-          if (response.approvalStatus === "approved") {
+        // Show welcome message for doctors
+        const userData = response.data || response;
+        if (userData.role === "doctor") {
+          if (userData.approvalStatus === "approved") {
             toast.success("Welcome! You have full access to the system.", {
               duration: 4000
             });
-          } else if (response.approvalStatus === "pending") {
+          } else if (userData.approvalStatus === "pending") {
             toast.success(
-              "Limited access granted. Complete profile and wait for hospital admin approval.",
+              "Welcome! Complete your profile and wait for hospital admin approval.",
               {
                 duration: 6000
               }
@@ -55,7 +56,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await api.post("/api/auth/login", { email, password });
-      const { token, user } = response;
+      const { token, user } = response.data || response;
 
       localStorage.setItem("token", token);
       api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
@@ -73,7 +74,7 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       const response = await api.post("/api/auth/register", userData);
-      const { token, user } = response;
+      const { token, user } = response.data || response;
 
       localStorage.setItem("token", token);
       api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
@@ -100,9 +101,9 @@ export const AuthProvider = ({ children }) => {
       const response = await api.put("/api/auth/profile", {
         profile: profileData
       });
-      setUser(response.user);
+      setUser(response.user || response.data?.user);
       toast.success("Profile updated successfully!");
-      return response.user;
+      return response.user || response.data?.user;
     } catch (error) {
       const message = error.response?.data?.message || "Profile update failed";
       toast.error(message);

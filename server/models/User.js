@@ -83,12 +83,6 @@ const userSchema = new mongoose.Schema(
       suspensionReason: { type: String },
       suspensionExpiry: { type: Date },
       suspensionNotes: { type: String }
-    },
-    // Access level for doctors
-    accessLevel: {
-      type: String,
-      enum: ["none", "basic", "full"],
-      default: "basic" // Doctors start with basic access until approved
     }
   },
   {

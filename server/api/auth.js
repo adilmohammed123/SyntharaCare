@@ -68,10 +68,8 @@ router.post(
       if (role === "doctor" && hospitalId) {
         const Hospital = require("../models/Hospital");
         const hospital = await Hospital.findById(hospitalId);
-        if (!hospital || hospital.approvalStatus !== "approved") {
-          return res
-            .status(400)
-            .json({ message: "Invalid or unapproved hospital" });
+        if (!hospital) {
+          return res.status(400).json({ message: "Invalid hospital" });
         }
       }
 
@@ -79,10 +77,8 @@ router.post(
       if (role === "organization_admin" && hospitalId) {
         const Hospital = require("../models/Hospital");
         const hospital = await Hospital.findById(hospitalId);
-        if (!hospital || hospital.approvalStatus !== "approved") {
-          return res
-            .status(400)
-            .json({ message: "Invalid or unapproved hospital" });
+        if (!hospital) {
+          return res.status(400).json({ message: "Invalid hospital" });
         }
 
         // Check if hospital already has an admin
@@ -181,8 +177,7 @@ router.post(
       const token = jwt.sign(
         {
           userId: user._id,
-          role: user.role,
-          accessLevel: user.accessLevel || "full"
+          role: user.role
         },
         process.env.JWT_SECRET,
         { expiresIn: "24h" }
@@ -268,47 +263,11 @@ router.post(
         });
       }
 
-      // Allow doctors to log in with limited access until approved
-      if (user.role === "doctor" && user.approvalStatus === "pending") {
-        // Generate token but with limited permissions
-        const token = jwt.sign(
-          {
-            userId: user._id,
-            role: user.role,
-            accessLevel: "basic"
-          },
-          process.env.JWT_SECRET,
-          { expiresIn: "24h" }
-        );
-
-        return res.json({
-          token,
-          user: {
-            _id: user._id,
-            email: user.email,
-            role: user.role,
-            profile: user.profile,
-            approvalStatus: user.approvalStatus,
-            accessLevel: "basic"
-          },
-          message:
-            "Limited access granted. Complete profile and wait for hospital admin approval for full access."
-        });
-      }
-
-      // Require full approval for other roles
-      if (user.approvalStatus !== "approved") {
-        return res.status(403).json({
-          message: "Account pending approval. Please wait for admin approval."
-        });
-      }
-
       // Create JWT token for approved users
       const token = jwt.sign(
         {
           userId: user._id,
-          role: user.role,
-          accessLevel: "full"
+          role: user.role
         },
         process.env.JWT_SECRET,
         { expiresIn: "24h" }
@@ -327,8 +286,7 @@ router.post(
           email: user.email,
           role: user.role,
           profile: user.profile,
-          approvalStatus: effectiveApprovalStatus,
-          accessLevel: "full"
+          approvalStatus: effectiveApprovalStatus
         }
       });
     } catch (error) {

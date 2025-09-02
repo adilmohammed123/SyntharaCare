@@ -21,8 +21,7 @@ router.get("/", async (req, res) => {
     } = req.query;
 
     const query = {
-      isActive: true,
-      approvalStatus: "approved"
+      isActive: true
     };
 
     if (specialization) {
@@ -80,7 +79,7 @@ router.get("/:id", async (req, res) => {
       .populate("hospitalId", "name address contact")
       .populate("availability");
 
-    if (!doctor || !doctor.isActive || doctor.approvalStatus !== "approved") {
+    if (!doctor || !doctor.isActive) {
       return res.status(404).json({ message: "Doctor not found" });
     }
 
@@ -142,23 +141,18 @@ router.get("/by-hospital/:hospitalId", async (req, res) => {
     const { hospitalId } = req.params;
     const { specialization, search = "" } = req.query;
 
-    // Verify hospital exists and is approved
+    // Verify hospital exists and is active
     const Hospital = require("../models/Hospital");
     const hospital = await Hospital.findById(hospitalId);
-    if (
-      !hospital ||
-      hospital.approvalStatus !== "approved" ||
-      !hospital.isActive
-    ) {
+    if (!hospital || !hospital.isActive) {
       return res
         .status(404)
-        .json({ message: "Hospital not found or not approved" });
+        .json({ message: "Hospital not found or not active" });
     }
 
     const query = {
       hospitalId,
-      isActive: true,
-      approvalStatus: "approved"
+      isActive: true
     };
 
     if (specialization) {
@@ -310,17 +304,13 @@ router.post(
           .json({ message: "Doctor profile already exists" });
       }
 
-      // Verify hospital exists and is approved
+      // Verify hospital exists and is active
       const Hospital = require("../models/Hospital");
       const hospital = await Hospital.findById(req.body.hospitalId);
-      if (
-        !hospital ||
-        hospital.approvalStatus !== "approved" ||
-        !hospital.isActive
-      ) {
+      if (!hospital || !hospital.isActive) {
         return res
           .status(400)
-          .json({ message: "Invalid or unapproved hospital" });
+          .json({ message: "Invalid or inactive hospital" });
       }
 
       const doctor = new Doctor({
@@ -364,17 +354,13 @@ router.post(
           .json({ message: "Doctor profile already exists" });
       }
 
-      // Verify hospital exists and is approved
+      // Verify hospital exists and is active
       const Hospital = require("../models/Hospital");
       const hospital = await Hospital.findById(req.body.hospitalId);
-      if (
-        !hospital ||
-        hospital.approvalStatus !== "approved" ||
-        !hospital.isActive
-      ) {
+      if (!hospital || !hospital.isActive) {
         return res
           .status(400)
-          .json({ message: "Invalid or unapproved hospital" });
+          .json({ message: "Invalid or inactive hospital" });
       }
 
       // Create a basic doctor profile with default values

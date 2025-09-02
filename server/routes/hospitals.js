@@ -93,11 +93,6 @@ router.get("/:id", async (req, res) => {
     // Check if user is admin - admins can see all hospitals
     const isAdmin = req.user && req.user.role === "admin";
 
-    // Only show approved hospitals to non-admin users
-    if (!isAdmin && hospital.approvalStatus !== "approved") {
-      return res.status(404).json({ message: "Hospital not found" });
-    }
-
     res.json(hospital);
   } catch (error) {
     console.error("Get hospital error:", error);
@@ -134,14 +129,6 @@ router.post(
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
-      }
-
-      // Check if user is approved
-      if (req.user.approvalStatus !== "approved") {
-        return res.status(403).json({
-          message:
-            "Your account needs to be approved before you can create hospitals"
-        });
       }
 
       const hospital = new Hospital({
@@ -275,8 +262,7 @@ router.put(
         req.params.id,
         updateData,
         { new: true, runValidators: true }
-      )
-      .populate("approvedBy", "profile.firstName profile.lastName");
+      ).populate("approvedBy", "profile.firstName profile.lastName");
 
       res.json({
         message: `Hospital ${req.body.approvalStatus} successfully`,

@@ -225,27 +225,6 @@ const Hospitals = () => {
         </div>
       </div>
 
-      {/* Organization Admin Notification */}
-      {user?.role === "organization_admin" &&
-        user?.approvalStatus !== "approved" && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <AlertCircle className="h-8 w-8 text-yellow-600" />
-              </div>
-              <div className="ml-3">
-                <h3 className="text-lg font-medium text-yellow-900">
-                  Account Pending Approval
-                </h3>
-                <p className="text-yellow-800 mt-1">
-                  Your organization admin account is pending approval. You'll be
-                  able to add hospitals once approved.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
       {/* Search and Filters */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="flex flex-wrap gap-4 items-center">
