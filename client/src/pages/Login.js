@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { useAuth } from '../contexts/AuthContext';
-import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { useAuth } from "../contexts/AuthContext";
+import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -13,14 +13,17 @@ const Login = () => {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors }
   } = useForm();
 
   const onSubmit = async (data) => {
     setLoading(true);
     try {
-      await login(data.email, data.password);
-      navigate('/');
+      const user = await login(data.email, data.password);
+      // Only navigate after login is successful and user is set
+      if (user) {
+        navigate("/");
+      }
     } catch (error) {
       // Error is handled by the auth context
     } finally {
@@ -39,7 +42,7 @@ const Login = () => {
             Sign in to your account
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
+            Or{" "}
             <Link
               to="/register"
               className="font-medium text-primary-600 hover:text-primary-500"
@@ -63,20 +66,22 @@ const Login = () => {
                   type="email"
                   autoComplete="email"
                   className={`input-field pl-10 ${
-                    errors.email ? 'border-red-500' : ''
+                    errors.email ? "border-red-500" : ""
                   }`}
                   placeholder="Enter your email"
-                  {...register('email', {
-                    required: 'Email is required',
+                  {...register("email", {
+                    required: "Email is required",
                     pattern: {
                       value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: 'Invalid email address',
-                    },
+                      message: "Invalid email address"
+                    }
                   })}
                 />
               </div>
               {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.email.message}
+                </p>
               )}
             </div>
 
@@ -90,18 +95,18 @@ const Login = () => {
                 </div>
                 <input
                   id="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   className={`input-field pl-10 pr-10 ${
-                    errors.password ? 'border-red-500' : ''
+                    errors.password ? "border-red-500" : ""
                   }`}
                   placeholder="Enter your password"
-                  {...register('password', {
-                    required: 'Password is required',
+                  {...register("password", {
+                    required: "Password is required",
                     minLength: {
                       value: 6,
-                      message: 'Password must be at least 6 characters',
-                    },
+                      message: "Password must be at least 6 characters"
+                    }
                   })}
                 />
                 <button
@@ -117,7 +122,9 @@ const Login = () => {
                 </button>
               </div>
               {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.password.message}
+                </p>
               )}
             </div>
           </div>
@@ -131,7 +138,7 @@ const Login = () => {
               {loading ? (
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
               ) : (
-                'Sign in'
+                "Sign in"
               )}
             </button>
           </div>

@@ -15,21 +15,29 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
 
   useEffect(() => {
     checkAuth();
   }, []);
 
   const checkAuth = async () => {
+    // Don't check auth if we're in the middle of authentication
+    if (isAuthenticating) return;
+
+    console.log("checkAuth called, isAuthenticating:", isAuthenticating);
+
     try {
       const token = localStorage.getItem("token");
       if (token) {
         api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
         const response = await api.get("/api/auth/me");
-        setUser(response.data || response);
+        const userData = response.data || response;
+
+        console.log("checkAuth response:", userData);
+        setUser(userData);
 
         // Show welcome message for doctors
-        const userData = response.data || response;
         if (userData.role === "doctor") {
           if (userData.approvalStatus === "approved") {
             toast.success("Welcome! You have full access to the system.", {
@@ -46,6 +54,7 @@ export const AuthProvider = ({ children }) => {
         }
       }
     } catch (error) {
+      console.error("CheckAuth error:", error);
       localStorage.removeItem("token");
       delete api.defaults.headers.common["Authorization"];
     } finally {
@@ -55,12 +64,21 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
+      console.log("Login started");
+      setIsAuthenticating(true);
       const response = await api.post("/api/auth/login", { email, password });
       const { token, user } = response.data || response;
 
+      console.log("Login response:", user);
+
       localStorage.setItem("token", token);
       api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+
+      // Set user state immediately and set loading to false
       setUser(user);
+      setLoading(false);
+
+      console.log("User state set:", user);
 
       toast.success("Login successful!");
       return user;
@@ -68,6 +86,9 @@ export const AuthProvider = ({ children }) => {
       const message = error.response?.data?.message || "Login failed";
       toast.error(message);
       throw error;
+    } finally {
+      setIsAuthenticating(false);
+      console.log("Login completed, isAuthenticating set to false");
     }
   };
 

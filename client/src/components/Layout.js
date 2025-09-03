@@ -47,10 +47,14 @@ const Layout = ({ children }) => {
   ];
 
   // Filter navigation items based on approval status
+  // Only filter if we have complete user data and the user is not approved
   const filteredNavigation =
-    user?.approvalStatus === "approved"
-      ? navigation
-      : [{ name: "Profile", href: "/profile", icon: User }];
+    user && user.approvalStatus && user.approvalStatus !== "approved"
+      ? [{ name: "Profile", href: "/profile", icon: User }]
+      : navigation;
+
+  console.log("Layout render - user:", user);
+  console.log("Layout render - filteredNavigation:", filteredNavigation);
 
   const handleLogout = () => {
     logout();
