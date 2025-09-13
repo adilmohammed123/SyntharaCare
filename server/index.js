@@ -64,8 +64,8 @@ app.use(limiter);
 
 // Database connection function with retry logic
 async function connectToDatabase() {
-  const maxRetries = 5;
-  const retryDelay = 2000; // 2 seconds
+  const maxRetries = 3; // Reduced retries for faster startup
+  const retryDelay = 1000; // 1 second
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -76,9 +76,9 @@ async function connectToDatabase() {
       }
 
       await mongoose.connect(process.env.MONGODB_URI, {
-        serverSelectionTimeoutMS: 10000, // 10 seconds
+        serverSelectionTimeoutMS: 5000, // Reduced timeout
         socketTimeoutMS: 45000, // 45 seconds
-        connectTimeoutMS: 10000, // 10 seconds
+        connectTimeoutMS: 5000, // Reduced timeout
         maxPoolSize: 10, // Maintain up to 10 socket connections
         minPoolSize: 2, // Maintain a minimum of 2 socket connections
         maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
@@ -179,25 +179,28 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Start server with proper database connection handling
+// Start server immediately and connect to database in background
 async function startServer() {
   const PORT = process.env.PORT || 8080;
 
-  // Try to connect to database first
-  console.log("Attempting to connect to MongoDB...");
-  const dbConnected = await connectToDatabase();
-
-  if (!dbConnected) {
-    console.error("Failed to connect to database. Exiting...");
-    process.exit(1);
-  }
-
-  // Start the server only after database connection is established
+  // Start the server immediately
   server.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
-    console.log("MongoDB connection established successfully");
   });
+
+  // Try to connect to database in background
+  console.log("Attempting to connect to MongoDB in background...");
+  const dbConnected = await connectToDatabase();
+
+  if (!dbConnected) {
+    console.warn(
+      "Failed to connect to database. Server will continue but database operations will fail."
+    );
+    console.warn("Please check your MONGODB_URI environment variable.");
+  } else {
+    console.log("MongoDB connection established successfully");
+  }
 }
 
 // Start the server
