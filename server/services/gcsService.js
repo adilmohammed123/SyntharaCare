@@ -14,12 +14,25 @@ class GCSService {
       throw new Error("GCS_CREDENTIALS environment variable is required");
     }
 
-    // Parse credentials
+    // Parse credentials - handle both file path and direct JSON
     let credentials;
     try {
-      credentials = JSON.parse(process.env.GCS_CREDENTIALS);
+      const credentialsValue = process.env.GCS_CREDENTIALS;
+
+      // Check if it's a file path (starts with /)
+      if (credentialsValue.startsWith("/")) {
+        // It's a file path, read the file
+        const fs = require("fs");
+        const credentialsContent = fs.readFileSync(credentialsValue, "utf8");
+        credentials = JSON.parse(credentialsContent);
+      } else {
+        // It's direct JSON content
+        credentials = JSON.parse(credentialsValue);
+      }
     } catch (error) {
-      throw new Error("GCS_CREDENTIALS must be valid JSON: " + error.message);
+      throw new Error(
+        "GCS_CREDENTIALS must be valid JSON or file path: " + error.message
+      );
     }
 
     // Initialize GCS client

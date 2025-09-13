@@ -36,13 +36,31 @@ async function testRenderGCS() {
       throw new Error("GCS_CREDENTIALS is not set");
     }
 
-    // Parse credentials
+    // Parse credentials - handle both file path and direct JSON
     let credentials;
     try {
-      credentials = JSON.parse(process.env.GCS_CREDENTIALS);
-      console.log("   - GCS_CREDENTIALS: ✅ Valid JSON");
+      const credentialsValue = process.env.GCS_CREDENTIALS;
+
+      // Check if it's a file path (starts with /)
+      if (credentialsValue.startsWith("/")) {
+        console.log(`   - GCS_CREDENTIALS: 📁 File path: ${credentialsValue}`);
+        // It's a file path, read the file
+        const fs = require("fs");
+        const credentialsContent = fs.readFileSync(credentialsValue, "utf8");
+        credentials = JSON.parse(credentialsContent);
+        console.log(
+          "   - GCS_CREDENTIALS: ✅ File read and parsed successfully"
+        );
+      } else {
+        console.log("   - GCS_CREDENTIALS: 📄 Direct JSON content");
+        // It's direct JSON content
+        credentials = JSON.parse(credentialsValue);
+        console.log("   - GCS_CREDENTIALS: ✅ Valid JSON");
+      }
     } catch (error) {
-      throw new Error(`GCS_CREDENTIALS is not valid JSON: ${error.message}`);
+      throw new Error(
+        `GCS_CREDENTIALS must be valid JSON or file path: ${error.message}`
+      );
     }
 
     // Initialize GCS client
