@@ -62,28 +62,50 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// Database connection function
+// Database connection function with retry logic
 async function connectToDatabase() {
-  try {
-    await mongoose.connect(
-      process.env.MONGODB_URI ||
-        "mongodb://localhost:27017/hospital_management",
-      {
-        serverSelectionTimeoutMS: 30000, // 30 seconds
-        socketTimeoutMS: 45000, // 45 seconds
-        connectTimeoutMS: 30000, // 30 seconds
-        maxPoolSize: 10, // Maintain up to 10 socket connections
-        minPoolSize: 5, // Maintain a minimum of 5 socket connections
-        maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
-        bufferCommands: false // Disable mongoose buffering
+  const maxRetries = 5;
+  const retryDelay = 2000; // 2 seconds
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`MongoDB connection attempt ${attempt}/${maxRetries}`);
+
+      if (!process.env.MONGODB_URI) {
+        throw new Error("MONGODB_URI environment variable is not set");
       }
-    );
-    console.log("Connected to MongoDB");
-    return true;
-  } catch (err) {
-    console.error("MongoDB connection error:", err);
-    return false;
+
+      await mongoose.connect(process.env.MONGODB_URI, {
+        serverSelectionTimeoutMS: 10000, // 10 seconds
+        socketTimeoutMS: 45000, // 45 seconds
+        connectTimeoutMS: 10000, // 10 seconds
+        maxPoolSize: 10, // Maintain up to 10 socket connections
+        minPoolSize: 2, // Maintain a minimum of 2 socket connections
+        maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
+        bufferCommands: false, // Disable mongoose buffering
+        retryWrites: true,
+        w: "majority"
+      });
+
+      console.log("✅ Connected to MongoDB successfully");
+      return true;
+    } catch (err) {
+      console.error(
+        `❌ MongoDB connection attempt ${attempt} failed:`,
+        err.message
+      );
+
+      if (attempt === maxRetries) {
+        console.error("❌ All MongoDB connection attempts failed");
+        return false;
+      }
+
+      console.log(`⏳ Retrying in ${retryDelay}ms...`);
+      await new Promise((resolve) => setTimeout(resolve, retryDelay));
+    }
   }
+
+  return false;
 }
 
 // Handle connection events
@@ -157,25 +179,25 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Start server with database connection retry
+// Start server with proper database connection handling
 async function startServer() {
   const PORT = process.env.PORT || 8080;
 
-  // Start the server first
-  server.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
-  });
-
-  // Try to connect to database in background
+  // Try to connect to database first
+  console.log("Attempting to connect to MongoDB...");
   const dbConnected = await connectToDatabase();
 
   if (!dbConnected) {
-    console.warn(
-      "Failed to connect to database. Server will continue but database operations will fail."
-    );
-    console.warn("Please check your MONGODB_URI environment variable.");
+    console.error("Failed to connect to database. Exiting...");
+    process.exit(1);
   }
+
+  // Start the server only after database connection is established
+  server.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
+    console.log("MongoDB connection established successfully");
+  });
 }
 
 // Start the server

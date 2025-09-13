@@ -21,6 +21,10 @@ spec:
         ports:
         - containerPort: 8080
         env:
+        - name: MONGODB_URI
+          value: mongodb+srv://adil:qwerty123@cluster0.sewwi.mongodb.net/Synthara?retryWrites=true&w=majority&appName=Cluster0
+        - name: JWT_SECRET
+          value: your-super-secure-jwt-secret-key-here
         - name: NODE_ENV
           value: "production"
         - name: PORT
