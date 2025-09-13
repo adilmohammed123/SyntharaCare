@@ -221,3 +221,31 @@ export const healthHistoryAPI = {
   getAppointmentHealthHistory: (appointmentId) =>
     api.get(`/api/health-history/appointment/${appointmentId}`)
 };
+
+export const uploadsAPI = {
+  // Upload a single file
+  uploadSingle: (formData) =>
+    api.post("/api/uploads/general", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data"
+      }
+    }),
+
+  // Upload multiple files
+  uploadMultiple: (formData) =>
+    api.post("/api/uploads/multiple", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data"
+      }
+    }),
+
+  // Delete a file
+  deleteFile: (filePath) => api.delete(`/api/uploads/${filePath}`),
+
+  // Get signed URL for private file access
+  getSignedUrl: (filePath, expires = 60) =>
+    api.get(`/api/uploads/signed-url/${filePath}`, { params: { expires } }),
+
+  // Check GCS connectivity (admin only)
+  healthCheck: () => api.get("/api/uploads/health-check")
+};

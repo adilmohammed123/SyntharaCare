@@ -6,15 +6,20 @@ const PrescriptionScanner = () => {
   const [showOCR, setShowOCR] = useState(false);
   const [extractedText, setExtractedText] = useState("");
   const [prescriptionHistory, setPrescriptionHistory] = useState([]);
+  const [uploadedFile, setUploadedFile] = useState(null);
 
-  const handleTextExtracted = (text) => {
+  const handleTextExtracted = (text, fileData = null) => {
     setExtractedText(text);
+    if (fileData) {
+      setUploadedFile(fileData);
+    }
     setPrescriptionHistory((prev) => [
       {
         id: Date.now(),
         text: text,
         date: new Date().toLocaleString(),
-        type: "OCR Scan"
+        type: "OCR Scan",
+        fileData: fileData
       },
       ...prev
     ]);
@@ -99,31 +104,69 @@ const PrescriptionScanner = () => {
               </h3>
             </div>
             <p className="text-gray-600 mb-4">
-              Upload a prescription image for processing
+              Upload a prescription image for reference
             </p>
             <button
               onClick={() => setShowOCR(true)}
               className="w-full btn-primary"
             >
-              Upload & Scan
+              Upload Image
             </button>
           </div>
         </div>
 
-        {/* Current Extracted Text */}
-        {extractedText && (
+        {/* Current Prescription */}
+        {(extractedText || uploadedFile) && (
           <div className="bg-white rounded-lg shadow-md p-6 border border-gray-200 mb-8">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Current Prescription Text
+              Current Prescription
             </h3>
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-              <pre className="whitespace-pre-wrap text-sm text-gray-800 font-mono">
-                {extractedText}
-              </pre>
-            </div>
+
+            {/* Prescription Text */}
+            {extractedText && (
+              <div className="mb-4">
+                <h4 className="text-sm font-medium text-gray-700 mb-2">
+                  Prescription Details:
+                </h4>
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <pre className="whitespace-pre-wrap text-sm text-gray-800">
+                    {extractedText}
+                  </pre>
+                </div>
+              </div>
+            )}
+
+            {/* Uploaded File Info */}
+            {uploadedFile && (
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <h4 className="text-sm font-medium text-green-800 mb-2">
+                  📁 Reference Image
+                </h4>
+                <div className="text-sm text-green-700">
+                  <p>
+                    <strong>File:</strong> {uploadedFile.originalName}
+                  </p>
+                  <p>
+                    <strong>Size:</strong>{" "}
+                    {Math.round(uploadedFile.size / 1024)} KB
+                  </p>
+                  <p>
+                    <strong>Type:</strong> {uploadedFile.mimeType}
+                  </p>
+                  <p>
+                    <strong>Uploaded:</strong>{" "}
+                    {new Date(uploadedFile.uploadedAt).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="mt-4 flex space-x-3">
               <button
-                onClick={() => setExtractedText("")}
+                onClick={() => {
+                  setExtractedText("");
+                  setUploadedFile(null);
+                }}
                 className="btn-secondary"
               >
                 Clear

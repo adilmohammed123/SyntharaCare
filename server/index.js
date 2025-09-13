@@ -56,6 +56,7 @@ app.use("/api/medicines", require("./routes/medicines"));
 app.use("/api/reminders", require("./routes/reminders"));
 app.use("/api/prescriptions", require("./routes/prescriptions"));
 app.use("/api/health-history", require("./routes/healthHistory"));
+app.use("/api/uploads", require("./routes/uploads"));
 
 // Serve uploaded files
 app.use("/uploads", express.static("uploads"));

@@ -5,39 +5,22 @@ const Appointment = require("../models/Appointment");
 const { auth, authorize } = require("../middleware/auth");
 const multer = require("multer");
 const path = require("path");
+const gcsService = require("../services/gcsService");
 
 const router = express.Router();
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/health-history/");
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(
-      null,
-      file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname)
-    );
-  }
-});
-
+// Configure multer for memory storage (we'll upload to GCS)
 const upload = multer({
-  storage: storage,
+  storage: multer.memoryStorage(),
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit
+    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024 // 10MB limit
   },
   fileFilter: function (req, file, cb) {
     // Allow only specific file types
-    const allowedTypes = [
-      "application/pdf",
-      "image/jpeg",
-      "image/png",
-      "image/gif",
-      "text/plain",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    ];
+    const allowedTypes = (
+      process.env.ALLOWED_FILE_TYPES ||
+      "application/pdf,image/jpeg,image/png,image/gif,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ).split(",");
 
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
@@ -94,6 +77,19 @@ router.post(
         return res.status(400).json({ message: "File is required" });
       }
 
+      // Upload file to Google Cloud Storage
+      const uploadResult = await gcsService.uploadFile(
+        req.file.buffer,
+        req.file.originalname,
+        "health-history",
+        {
+          mimeType: req.file.mimetype,
+          patientId: req.user._id.toString(),
+          category: req.body.category,
+          title: req.body.title
+        }
+      );
+
       // Determine document type based on mime type
       let documentType = "document";
       if (req.file.mimetype === "application/pdf") {
@@ -110,7 +106,7 @@ router.post(
         description: req.body.description,
         category: req.body.category,
         documentType: documentType,
-        fileUrl: `/uploads/health-history/${req.file.filename}`,
+        fileUrl: uploadResult.publicUrl,
         fileName: req.file.originalname,
         fileSize: req.file.size,
         mimeType: req.file.mimetype,
@@ -129,7 +125,11 @@ router.post(
       });
     } catch (error) {
       console.error("Upload health history error:", error);
-      res.status(500).json({ message: "Server error" });
+      res.status(500).json({
+        message: "Server error",
+        error:
+          process.env.NODE_ENV === "development" ? error.message : undefined
+      });
     }
   }
 );
@@ -324,6 +324,26 @@ router.delete("/:id", auth, authorize("patient"), async (req, res) => {
       return res.status(403).json({ message: "Access denied" });
     }
 
+    // Extract file path from GCS URL for deletion
+    if (
+      healthHistory.fileUrl &&
+      healthHistory.fileUrl.includes("storage.googleapis.com")
+    ) {
+      try {
+        const urlParts = healthHistory.fileUrl.split("/");
+        const bucketIndex = urlParts.findIndex(
+          (part) => part === process.env.GCS_BUCKET_NAME
+        );
+        if (bucketIndex !== -1 && bucketIndex < urlParts.length - 1) {
+          const filePath = urlParts.slice(bucketIndex + 1).join("/");
+          await gcsService.deleteFile(filePath);
+        }
+      } catch (deleteError) {
+        console.error("Error deleting file from GCS:", deleteError);
+        // Continue with soft delete even if GCS deletion fails
+      }
+    }
+
     // Soft delete
     healthHistory.isActive = false;
     await healthHistory.save();
@@ -374,11 +394,9 @@ router.post(
       });
 
       if (healthHistoryDocs.length !== healthHistoryIds.length) {
-        return res
-          .status(400)
-          .json({
-            message: "Some health history documents not found or access denied"
-          });
+        return res.status(400).json({
+          message: "Some health history documents not found or access denied"
+        });
       }
 
       // Add health history to appointment

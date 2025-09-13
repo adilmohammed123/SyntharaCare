@@ -1,43 +1,63 @@
 import React, { useState, useRef } from "react";
-import { createWorker } from "tesseract.js";
-import { Upload, FileText, Camera, Loader2, CheckCircle, XCircle } from "lucide-react";
+import {
+  Upload,
+  FileText,
+  Camera,
+  Loader2,
+  CheckCircle,
+  XCircle
+} from "lucide-react";
+import { uploadsAPI } from "../utils/api";
+import { toast } from "react-hot-toast";
 
 const PrescriptionOCR = ({ onTextExtracted, onClose }) => {
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [extractedText, setExtractedText] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState("");
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [manualText, setManualText] = useState("");
   const fileInputRef = useRef(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const [showCamera, setShowCamera] = useState(false);
 
-  const processImage = async (imageFile) => {
-    setIsProcessing(true);
-    setProgress(0);
+  const uploadImageToGCS = async (imageFile) => {
+    setIsUploading(true);
     setError("");
-    setExtractedText("");
 
     try {
-      const worker = await createWorker("eng", 1, {
-        logger: (m) => {
-          if (m.status === "recognizing text") {
-            setProgress(Math.round(m.progress * 100));
-          }
-        },
-      });
+      const formData = new FormData();
+      formData.append("file", imageFile);
+      formData.append("folder", "prescriptions");
+      formData.append("description", "Prescription image for OCR processing");
 
-      const { data: { text } } = await worker.recognize(imageFile);
-      
-      setExtractedText(text);
-      onTextExtracted(text);
-      await worker.terminate();
+      const response = await uploadsAPI.uploadSingle(formData);
+
+      setUploadedFile(response.data.file);
+      toast.success("Image uploaded successfully!");
+      return response.data.file;
     } catch (err) {
-      setError("Failed to process image. Please try again.");
-      console.error("OCR Error:", err);
+      const errorMessage =
+        err.response?.data?.message || "Failed to upload image";
+      setError(errorMessage);
+      toast.error(errorMessage);
+      throw err;
     } finally {
-      setIsProcessing(false);
-      setProgress(0);
+      setIsUploading(false);
+    }
+  };
+
+  const processImage = async (imageFile) => {
+    setError("");
+
+    try {
+      // Upload the image to GCS
+      const uploadedFileData = await uploadImageToGCS(imageFile);
+
+      // Call the callback with just the file data (no OCR text)
+      onTextExtracted("", uploadedFileData);
+    } catch (err) {
+      // Upload error already handled in uploadImageToGCS
+      console.error("Upload Error:", err);
     }
   };
 
@@ -52,10 +72,19 @@ const PrescriptionOCR = ({ onTextExtracted, onClose }) => {
     }
   };
 
+  const handleManualSubmit = () => {
+    if (manualText.trim()) {
+      onTextExtracted(manualText.trim(), null);
+      setManualText("");
+    } else {
+      setError("Please enter prescription text.");
+    }
+  };
+
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: "environment" } 
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" }
       });
       videoRef.current.srcObject = stream;
       setShowCamera(true);
@@ -82,7 +111,7 @@ const PrescriptionOCR = ({ onTextExtracted, onClose }) => {
 
   const stopCamera = () => {
     if (videoRef.current && videoRef.current.srcObject) {
-      videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject.getTracks().forEach((track) => track.stop());
     }
     setShowCamera(false);
   };
@@ -109,12 +138,42 @@ const PrescriptionOCR = ({ onTextExtracted, onClose }) => {
         </div>
 
         <div className="p-6 space-y-6">
+          {/* Manual Text Input */}
+          <div className="space-y-4">
+            <div className="text-center">
+              <p className="text-gray-600 mb-4">
+                Enter prescription details manually or upload an image for
+                reference
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-gray-700">
+                Prescription Text
+              </label>
+              <textarea
+                value={manualText}
+                onChange={(e) => setManualText(e.target.value)}
+                placeholder="Enter prescription details, medications, dosages, instructions, etc..."
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                rows={6}
+              />
+              <button
+                onClick={handleManualSubmit}
+                className="w-full btn-primary"
+                disabled={!manualText.trim()}
+              >
+                Add Prescription
+              </button>
+            </div>
+          </div>
+
           {/* Upload Options */}
-          {!showCamera && !isProcessing && (
+          {!showCamera && !isUploading && (
             <div className="space-y-4">
               <div className="text-center">
                 <p className="text-gray-600 mb-4">
-                  Upload a prescription image or take a photo to extract text
+                  Or upload a prescription image for reference
                 </p>
               </div>
 
@@ -142,9 +201,7 @@ const PrescriptionOCR = ({ onTextExtracted, onClose }) => {
                   <span className="text-sm font-medium text-gray-700">
                     Take Photo
                   </span>
-                  <span className="text-xs text-gray-500 mt-1">
-                    Use camera
-                  </span>
+                  <span className="text-xs text-gray-500 mt-1">Use camera</span>
                 </button>
               </div>
 
@@ -171,41 +228,46 @@ const PrescriptionOCR = ({ onTextExtracted, onClose }) => {
                 <canvas ref={canvasRef} className="hidden" />
               </div>
               <div className="flex justify-center space-x-4">
-                <button
-                  onClick={captureImage}
-                  className="btn-primary"
-                >
+                <button onClick={captureImage} className="btn-primary">
                   Capture
                 </button>
-                <button
-                  onClick={stopCamera}
-                  className="btn-secondary"
-                >
+                <button onClick={stopCamera} className="btn-secondary">
                   Cancel
                 </button>
               </div>
             </div>
           )}
 
-          {/* Processing State */}
-          {isProcessing && (
+          {/* Upload State */}
+          {isUploading && (
             <div className="text-center space-y-4">
-              <Loader2 className="h-12 w-12 text-primary-600 animate-spin mx-auto" />
+              <Loader2 className="h-12 w-12 text-yellow-600 animate-spin mx-auto" />
               <div>
                 <p className="text-lg font-medium text-gray-900">
-                  Processing prescription...
+                  Uploading image...
                 </p>
-                <p className="text-sm text-gray-600">
-                  Extracting text from image
-                </p>
+                <p className="text-sm text-gray-600">Saving to cloud storage</p>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-primary-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${progress}%` }}
-                ></div>
+            </div>
+          )}
+
+          {/* Upload Success */}
+          {uploadedFile && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="flex items-center mb-2">
+                <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
+                <span className="text-green-800 font-medium">
+                  Image uploaded successfully!
+                </span>
               </div>
-              <p className="text-sm text-gray-600">{progress}% complete</p>
+              <p className="text-green-700 text-sm">
+                File: {uploadedFile.originalName} (
+                {Math.round(uploadedFile.size / 1024)} KB)
+              </p>
+              <p className="text-green-600 text-xs mt-1">
+                Image saved for reference. Please enter prescription details
+                manually above.
+              </p>
             </div>
           )}
 
@@ -215,37 +277,6 @@ const PrescriptionOCR = ({ onTextExtracted, onClose }) => {
               <div className="flex items-center">
                 <XCircle className="h-5 w-5 text-red-400 mr-2" />
                 <p className="text-red-800">{error}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Extracted Text */}
-          {extractedText && !isProcessing && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium text-gray-900">
-                  Extracted Text
-                </h3>
-                <CheckCircle className="h-5 w-5 text-green-500" />
-              </div>
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <pre className="whitespace-pre-wrap text-sm text-gray-800 font-mono">
-                  {extractedText}
-                </pre>
-              </div>
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={() => setExtractedText("")}
-                  className="btn-secondary"
-                >
-                  Clear
-                </button>
-                <button
-                  onClick={handleClose}
-                  className="btn-primary"
-                >
-                  Use This Text
-                </button>
               </div>
             </div>
           )}
