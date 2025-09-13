@@ -62,7 +62,7 @@ jobs:
             --memory 1Gi \
             --cpu 1 \
             --max-instances 10 \
-            --timeout 300 \
+            --timeout 600 \
             --service-account syntharacare-run@${{ env.PROJECT_ID }}.iam.gserviceaccount.com \
             --set-env-vars NODE_ENV=production \
             --set-env-vars MONGODB_URI="${{ secrets.MONGODB_URI }}" \

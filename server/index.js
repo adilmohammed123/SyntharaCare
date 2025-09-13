@@ -64,8 +64,8 @@ app.use(limiter);
 
 // Database connection function with retry logic
 async function connectToDatabase() {
-  const maxRetries = 3; // Reduced retries for faster startup
-  const retryDelay = 1000; // 1 second
+  const maxRetries = 2; // Reduced retries for faster startup
+  const retryDelay = 2000; // 2 seconds
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -76,11 +76,11 @@ async function connectToDatabase() {
       }
 
       await mongoose.connect(process.env.MONGODB_URI, {
-        serverSelectionTimeoutMS: 10000, // 10 seconds
-        socketTimeoutMS: 45000, // 45 seconds
-        connectTimeoutMS: 10000, // 10 seconds
+        serverSelectionTimeoutMS: 5000, // 5 seconds
+        socketTimeoutMS: 30000, // 30 seconds
+        connectTimeoutMS: 5000, // 5 seconds
         maxPoolSize: 10, // Maintain up to 10 socket connections
-        minPoolSize: 2, // Maintain a minimum of 2 socket connections
+        minPoolSize: 1, // Maintain a minimum of 1 socket connection
         maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
         bufferCommands: false, // Disable mongoose buffering
         retryWrites: true,
@@ -183,24 +183,51 @@ app.get("/health", (req, res) => {
 async function startServer() {
   const PORT = process.env.PORT || 8080;
 
+  console.log("🚀 Starting SyntharaCare server...");
+  console.log(`📋 Environment variables check:`);
+  console.log(`   - NODE_ENV: ${process.env.NODE_ENV || "undefined"}`);
+  console.log(`   - PORT: ${PORT}`);
+  console.log(
+    `   - MONGODB_URI: ${process.env.MONGODB_URI ? "SET" : "NOT SET"}`
+  );
+  console.log(
+    `   - GEMINI_API_KEY: ${process.env.GEMINI_API_KEY ? "SET" : "NOT SET"}`
+  );
+
   // Try to connect to database first
-  console.log("Attempting to connect to MongoDB...");
+  console.log("🔌 Attempting to connect to MongoDB...");
   const dbConnected = await connectToDatabase();
 
   if (!dbConnected) {
-    console.error("Failed to connect to database. Exiting...");
-    process.exit(1);
+    console.warn(
+      "⚠️ Failed to connect to database initially. Server will start anyway and retry connection in background."
+    );
+    console.warn(
+      "⚠️ Some features may not work until database connection is established."
+    );
   }
 
-  // Start the server only after database connection is established
+  // Start the server regardless of database connection status
   server.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`✅ Server running on port ${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
-    console.log("MongoDB connection established successfully");
+    if (dbConnected) {
+      console.log("✅ MongoDB connection established successfully");
+    } else {
+      console.log("⚠️ MongoDB connection will be retried in background");
+      // Retry database connection in background
+      setTimeout(async () => {
+        console.log("🔄 Retrying database connection in background...");
+        await connectToDatabase();
+      }, 5000);
+    }
   });
 }
 
 // Start the server
-startServer();
+startServer().catch((error) => {
+  console.error("❌ Failed to start server:", error);
+  process.exit(1);
+});
 
 module.exports = { app, io };
