@@ -33,6 +33,8 @@ spec:
           value: "syntharacare"
         - name: GCS_BUCKET_NAME
           value: "syntharauibucket"
+        - name: GEMINI_API_KEY
+          value: AIzaSyBlmnCUVeDPrPj_zBOsneSjbI3_dlnTb2g
         - name: GCS_CREDENTIALS
           valueFrom:
             secretKeyRef:

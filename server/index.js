@@ -76,9 +76,9 @@ async function connectToDatabase() {
       }
 
       await mongoose.connect(process.env.MONGODB_URI, {
-        serverSelectionTimeoutMS: 5000, // Reduced timeout
+        serverSelectionTimeoutMS: 10000, // 10 seconds
         socketTimeoutMS: 45000, // 45 seconds
-        connectTimeoutMS: 5000, // Reduced timeout
+        connectTimeoutMS: 10000, // 10 seconds
         maxPoolSize: 10, // Maintain up to 10 socket connections
         minPoolSize: 2, // Maintain a minimum of 2 socket connections
         maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
@@ -179,28 +179,25 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Start server immediately and connect to database in background
+// Start server after database connection
 async function startServer() {
   const PORT = process.env.PORT || 8080;
 
-  // Start the server immediately
-  server.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
-  });
-
-  // Try to connect to database in background
-  console.log("Attempting to connect to MongoDB in background...");
+  // Try to connect to database first
+  console.log("Attempting to connect to MongoDB...");
   const dbConnected = await connectToDatabase();
 
   if (!dbConnected) {
-    console.warn(
-      "Failed to connect to database. Server will continue but database operations will fail."
-    );
-    console.warn("Please check your MONGODB_URI environment variable.");
-  } else {
-    console.log("MongoDB connection established successfully");
+    console.error("Failed to connect to database. Exiting...");
+    process.exit(1);
   }
+
+  // Start the server only after database connection is established
+  server.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
+    console.log("MongoDB connection established successfully");
+  });
 }
 
 // Start the server

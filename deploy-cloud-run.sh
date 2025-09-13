@@ -67,6 +67,7 @@ gcloud run deploy $SERVICE_NAME \
     --max-instances 10 \
     --service-account syntharacare-run@$PROJECT_ID.iam.gserviceaccount.com \
     --set-env-vars NODE_ENV=production \
+    --set-env-vars GEMINI_API_KEY=AIzaSyBlmnCUVeDPrPj_zBOsneSjbI3_dlnTb2g \
     --set-secrets GCS_CREDENTIALS=GCS_CREDENTIALS:latest \
     --set-env-vars GCS_PROJECT_ID=$PROJECT_ID \
     --set-env-vars GCS_BUCKET_NAME=syntharauibucket
