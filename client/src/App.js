@@ -15,7 +15,6 @@ import Diagnoses from "./pages/Diagnoses";
 import Reminders from "./pages/Reminders";
 import Medicines from "./pages/Medicines";
 import PrescriptionScanner from "./pages/PrescriptionScanner";
-import PendingApproval from "./pages/PendingApproval";
 import HealthHistory from "./pages/HealthHistory";
 
 function AppContent() {

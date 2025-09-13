@@ -32,6 +32,3 @@ const FloatingChatbot = () => {
 };
 
 export default FloatingChatbot;
-
-
-
