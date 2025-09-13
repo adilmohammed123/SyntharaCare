@@ -1,8 +1,16 @@
 const express = require("express");
 const router = express.Router();
 const { auth, authorize } = require("../middleware/auth");
-const geminiService = require("../services/geminiService");
 const { body, validationResult } = require("express-validator");
+
+// Conditionally require Gemini service
+let geminiService;
+try {
+  geminiService = require("../services/geminiService");
+} catch (error) {
+  console.warn("Gemini service not available:", error.message);
+  geminiService = null;
+}
 
 // Test endpoint to verify chatbot routes are working
 router.get("/test", (req, res) => {
@@ -53,6 +61,13 @@ router.post(
         userRole: req.user.role
       };
 
+      if (!geminiService) {
+        return res.status(503).json({
+          success: false,
+          message: "AI chatbot service is not available"
+        });
+      }
+
       console.log("Calling Gemini service with context:", contextWithRole);
       const response = await geminiService.generateResponse(
         message,
@@ -101,6 +116,13 @@ router.post(
 
       const { query, searchType = "general" } = req.body;
 
+      if (!geminiService) {
+        return res.status(503).json({
+          success: false,
+          message: "AI chatbot service is not available"
+        });
+      }
+
       const response = await geminiService.searchMedicalInfo(query, searchType);
 
       res.json({
@@ -144,6 +166,13 @@ router.post(
 
       const { medications } = req.body;
 
+      if (!geminiService) {
+        return res.status(503).json({
+          success: false,
+          message: "AI chatbot service is not available"
+        });
+      }
+
       const response = await geminiService.getDrugInteractions(medications);
 
       res.json({
@@ -186,6 +215,13 @@ router.post(
       }
 
       const { symptoms, suspectedConditions = [] } = req.body;
+
+      if (!geminiService) {
+        return res.status(503).json({
+          success: false,
+          message: "AI chatbot service is not available"
+        });
+      }
 
       const response = await geminiService.suggestDiagnosticTests(
         symptoms,
@@ -235,6 +271,13 @@ router.post(
 
       const { condition, severity = "moderate" } = req.body;
 
+      if (!geminiService) {
+        return res.status(503).json({
+          success: false,
+          message: "AI chatbot service is not available"
+        });
+      }
+
       const response = await geminiService.getTreatmentProtocol(
         condition,
         severity
@@ -267,6 +310,13 @@ router.get(
     try {
       const { topic } = req.params;
 
+      if (!geminiService) {
+        return res.status(503).json({
+          success: false,
+          message: "AI chatbot service is not available"
+        });
+      }
+
       const response = await geminiService.searchMedicalInfo(topic, "general");
 
       res.json({
@@ -293,6 +343,15 @@ router.get(
   authorize(["doctor", "patient"]),
   async (req, res) => {
     try {
+      if (!geminiService) {
+        return res.status(503).json({
+          success: false,
+          message: "AI chatbot service is not available",
+          configured: false,
+          development: true
+        });
+      }
+
       const models = await geminiService.listAvailableModels();
 
       res.json({

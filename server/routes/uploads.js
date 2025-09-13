@@ -1,8 +1,16 @@
 const express = require("express");
 const multer = require("multer");
 const { auth } = require("../middleware/auth");
-const gcsService = require("../services/gcsService");
 const { body, validationResult } = require("express-validator");
+
+// Conditionally require GCS service
+let gcsService;
+try {
+  gcsService = require("../services/gcsService");
+} catch (error) {
+  console.warn("GCS service not available:", error.message);
+  gcsService = null;
+}
 
 const router = express.Router();
 
@@ -59,6 +67,13 @@ router.post(
 
       const folder = req.body.folder || "general";
       const description = req.body.description || "";
+
+      // Check if GCS service is available
+      if (!gcsService) {
+        return res.status(503).json({
+          message: "File upload service is not available"
+        });
+      }
 
       // Upload file to Google Cloud Storage
       const uploadResult = await gcsService.uploadFile(
@@ -126,6 +141,13 @@ router.post(
 
       const folder = req.body.folder || "general";
       const description = req.body.description || "";
+
+      // Check if GCS service is available
+      if (!gcsService) {
+        return res.status(503).json({
+          message: "File upload service is not available"
+        });
+      }
 
       const uploadPromises = req.files.map(async (file) => {
         try {
@@ -197,6 +219,12 @@ router.delete("/:filePath(*)", auth, async (req, res) => {
       return res.status(400).json({ message: "File path is required" });
     }
 
+    if (!gcsService) {
+      return res.status(503).json({
+        message: "File service is not available"
+      });
+    }
+
     const success = await gcsService.deleteFile(filePath);
 
     if (success) {
@@ -227,6 +255,12 @@ router.get("/signed-url/:filePath(*)", auth, async (req, res) => {
       return res.status(400).json({ message: "File path is required" });
     }
 
+    if (!gcsService) {
+      return res.status(503).json({
+        message: "File service is not available"
+      });
+    }
+
     const signedUrl = await gcsService.getSignedUrl(
       filePath,
       expirationMinutes
@@ -252,6 +286,13 @@ router.get("/health-check", auth, async (req, res) => {
   try {
     if (req.user.role !== "admin" && req.user.role !== "organization_admin") {
       return res.status(403).json({ message: "Access denied" });
+    }
+
+    if (!gcsService) {
+      return res.json({
+        gcsConnected: false,
+        message: "GCS service is not available"
+      });
     }
 
     const bucketAccess = await gcsService.checkBucketAccess();

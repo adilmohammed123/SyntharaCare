@@ -5,7 +5,15 @@ const Appointment = require("../models/Appointment");
 const { auth, authorize } = require("../middleware/auth");
 const multer = require("multer");
 const path = require("path");
-const gcsService = require("../services/gcsService");
+
+// Conditionally require GCS service
+let gcsService;
+try {
+  gcsService = require("../services/gcsService");
+} catch (error) {
+  console.warn("GCS service not available:", error.message);
+  gcsService = null;
+}
 
 const router = express.Router();
 
@@ -75,6 +83,13 @@ router.post(
 
       if (!req.file) {
         return res.status(400).json({ message: "File is required" });
+      }
+
+      // Check if GCS service is available
+      if (!gcsService) {
+        return res.status(503).json({
+          message: "File upload service is not available"
+        });
       }
 
       // Upload file to Google Cloud Storage
@@ -330,13 +345,17 @@ router.delete("/:id", auth, authorize("patient"), async (req, res) => {
       healthHistory.fileUrl.includes("storage.googleapis.com")
     ) {
       try {
-        const urlParts = healthHistory.fileUrl.split("/");
-        const bucketIndex = urlParts.findIndex(
-          (part) => part === process.env.GCS_BUCKET_NAME
-        );
-        if (bucketIndex !== -1 && bucketIndex < urlParts.length - 1) {
-          const filePath = urlParts.slice(bucketIndex + 1).join("/");
-          await gcsService.deleteFile(filePath);
+        if (!gcsService) {
+          console.warn("GCS service not available, skipping file deletion");
+        } else {
+          const urlParts = healthHistory.fileUrl.split("/");
+          const bucketIndex = urlParts.findIndex(
+            (part) => part === process.env.GCS_BUCKET_NAME
+          );
+          if (bucketIndex !== -1 && bucketIndex < urlParts.length - 1) {
+            const filePath = urlParts.slice(bucketIndex + 1).join("/");
+            await gcsService.deleteFile(filePath);
+          }
         }
       } catch (deleteError) {
         console.error("Error deleting file from GCS:", deleteError);

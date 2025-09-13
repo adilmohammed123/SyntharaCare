@@ -19,35 +19,72 @@ const io = socketIo(server, {
   }
 });
 
+// Trust proxy for GCP Cloud Run
+app.set("trust proxy", true);
+
 // Middleware
 app.use(helmet());
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "https://synthara-care-ua5k.vercel.app",
+      "http://localhost:3000",
+      "http://localhost:3001"
+    ],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
+  })
+);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// Rate limiting
+// Rate limiting - configured for Cloud Run with trust proxy
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000 // limit each IP to 1000 requests per windowMs (increased for development)
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: {
+    error: "Too many requests from this IP, please try again later."
+  },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  // Skip successful requests
+  skipSuccessfulRequests: false,
+  // Skip failed requests
+  skipFailedRequests: false,
+  // Trust proxy for Cloud Run
+  trustProxy: true,
+  // Use a custom key generator that works with Cloud Run
+  keyGenerator: (req) => {
+    // Use the real IP from Cloud Run's X-Forwarded-For header
+    return req.ip || req.connection.remoteAddress || "unknown";
+  }
 });
 app.use(limiter);
 
-// Database connection
-mongoose
-  .connect(
-    process.env.MONGODB_URI || "mongodb://localhost:27017/hospital_management",
-    {
-      serverSelectionTimeoutMS: 30000, // 30 seconds
-      socketTimeoutMS: 45000, // 45 seconds
-      connectTimeoutMS: 30000, // 30 seconds
-      maxPoolSize: 10, // Maintain up to 10 socket connections
-      minPoolSize: 5, // Maintain a minimum of 5 socket connections
-      maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
-      bufferCommands: false // Disable mongoose buffering
-    }
-  )
-  .then(() => console.log("Connected to MongoDB"))
-  .catch((err) => console.error("MongoDB connection error:", err));
+// Database connection function
+async function connectToDatabase() {
+  try {
+    await mongoose.connect(
+      process.env.MONGODB_URI ||
+        "mongodb://localhost:27017/hospital_management",
+      {
+        serverSelectionTimeoutMS: 30000, // 30 seconds
+        socketTimeoutMS: 45000, // 45 seconds
+        connectTimeoutMS: 30000, // 30 seconds
+        maxPoolSize: 10, // Maintain up to 10 socket connections
+        minPoolSize: 5, // Maintain a minimum of 5 socket connections
+        maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
+        bufferCommands: false // Disable mongoose buffering
+      }
+    );
+    console.log("Connected to MongoDB");
+    return true;
+  } catch (err) {
+    console.error("MongoDB connection error:", err);
+    return false;
+  }
+}
 
 // Handle connection events
 mongoose.connection.on("connected", () => {
@@ -110,13 +147,38 @@ app.use((err, req, res, next) => {
 
 // Health check endpoint
 app.get("/health", (req, res) => {
-  res.json({ status: "OK", timestamp: new Date().toISOString() });
+  const dbStatus =
+    mongoose.connection.readyState === 1 ? "connected" : "disconnected";
+  res.json({
+    status: "OK",
+    timestamp: new Date().toISOString(),
+    database: dbStatus,
+    mongodb_uri_set: !!process.env.MONGODB_URI
+  });
 });
 
-const PORT = process.env.PORT || 8080;
-server.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
-});
+// Start server with database connection retry
+async function startServer() {
+  const PORT = process.env.PORT || 8080;
+
+  // Start the server first
+  server.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
+  });
+
+  // Try to connect to database in background
+  const dbConnected = await connectToDatabase();
+
+  if (!dbConnected) {
+    console.warn(
+      "Failed to connect to database. Server will continue but database operations will fail."
+    );
+    console.warn("Please check your MONGODB_URI environment variable.");
+  }
+}
+
+// Start the server
+startServer();
 
 module.exports = { app, io };
