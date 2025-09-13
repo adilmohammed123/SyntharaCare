@@ -37,12 +37,38 @@ mongoose
   .connect(
     process.env.MONGODB_URI || "mongodb://localhost:27017/hospital_management",
     {
-      useNewUrlParser: true,
-      useUnifiedTopology: true
+      serverSelectionTimeoutMS: 30000, // 30 seconds
+      socketTimeoutMS: 45000, // 45 seconds
+      connectTimeoutMS: 30000, // 30 seconds
+      maxPoolSize: 10, // Maintain up to 10 socket connections
+      minPoolSize: 5, // Maintain a minimum of 5 socket connections
+      maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
+      bufferCommands: false // Disable mongoose buffering
     }
   )
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("MongoDB connection error:", err));
+
+// Handle connection events
+mongoose.connection.on("connected", () => {
+  console.log("Mongoose connected to MongoDB");
+});
+
+mongoose.connection.on("error", (err) => {
+  console.error("Mongoose connection error:", err);
+});
+
+mongoose.connection.on("disconnected", () => {
+  console.log("Mongoose disconnected from MongoDB");
+});
+
+// Graceful shutdown
+process.on("SIGINT", () => {
+  mongoose.connection.close(() => {
+    console.log("Mongoose connection closed through app termination");
+    process.exit(0);
+  });
+});
 
 // Routes
 app.use("/api/auth", require("./routes/auth"));

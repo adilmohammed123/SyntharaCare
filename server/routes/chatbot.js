@@ -4,6 +4,16 @@ const { auth, authorize } = require("../middleware/auth");
 const geminiService = require("../services/geminiService");
 const { body, validationResult } = require("express-validator");
 
+// Test endpoint to verify chatbot routes are working
+router.get("/test", (req, res) => {
+  res.json({
+    success: true,
+    message: "Chatbot routes are working",
+    timestamp: new Date().toISOString(),
+    hasGeminiKey: !!process.env.GEMINI_API_KEY
+  });
+});
+
 // Chat with AI assistant
 router.post(
   "/chat",
@@ -18,8 +28,16 @@ router.post(
   ],
   async (req, res) => {
     try {
+      console.log("Chatbot request received:", {
+        user: req.user._id,
+        role: req.user.role,
+        message: req.body.message,
+        hasGeminiKey: !!process.env.GEMINI_API_KEY
+      });
+
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
+        console.log("Validation errors:", errors.array());
         return res.status(400).json({
           success: false,
           message: "Validation failed",
@@ -35,11 +53,13 @@ router.post(
         userRole: req.user.role
       };
 
+      console.log("Calling Gemini service with context:", contextWithRole);
       const response = await geminiService.generateResponse(
         message,
         contextWithRole
       );
 
+      console.log("Gemini response received, length:", response.length);
       res.json({
         success: true,
         response: response,
