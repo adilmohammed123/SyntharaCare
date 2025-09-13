@@ -2,6 +2,7 @@ import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Layout from "./components/Layout";
+import FloatingChatbot from "./components/FloatingChatbot";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
@@ -54,6 +55,7 @@ function AppContent() {
         <Route path="/health-history" element={<HealthHistory />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <FloatingChatbot />
     </Layout>
   );
 }

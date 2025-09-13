@@ -4,7 +4,7 @@ const API_BASE_URL =
   process.env.REACT_APP_API_BASE_URL ||
   (process.env.NODE_ENV === "production"
     ? "https://syntharacare-api-205506659521.us-central1.run.app" // Cloud Run production URL
-    : "http://localhost:5000"); // Development URL
+    : "http://localhost:8080"); // Development URL
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -50,102 +50,101 @@ export const authAPI = {
     api.put("/api/auth/profile", { profile: profileData })
 };
 
-export const appointmentsAPI = {
-  getAll: (params) => api.get("/api/appointments", { params }),
-  getById: (id) => api.get(`/api/appointments/${id}`),
-  create: (appointmentData) => api.post("/api/appointments", appointmentData),
-  updateStatus: (id, status) =>
-    api.put(`/api/appointments/${id}/status`, { status }),
-  cancel: (id) => api.delete(`/api/appointments/${id}`),
-  updateSessionPhase: (id, sessionPhase) =>
-    api.put(`/api/appointments/${id}/session-phase`, { sessionPhase }),
-  moveUp: (id) => api.put(`/api/appointments/${id}/move-up`),
-  moveDown: (id) => api.put(`/api/appointments/${id}/move-down`),
-  getQueue: (doctorId, date) =>
-    api.get(`/api/appointments/queue/${doctorId}/${date}`),
-  reorderQueue: (data) => api.put("/api/appointments/reorder-queue", data)
+export const patientsAPI = {
+  getPatients: (params) => api.get("/api/patients", { params }),
+  getPatientById: (id) => api.get(`/api/patients/${id}`),
+  updatePatient: (id, patientData) =>
+    api.put(`/api/patients/${id}`, patientData),
+  deletePatient: (id) => api.delete(`/api/patients/${id}`)
 };
 
 export const doctorsAPI = {
   getAll: (params) => api.get("/api/doctors", { params }),
-  getById: (id) => api.get(`/api/doctors/${id}`),
-  getByHospital: (hospitalId, params) =>
-    api.get(`/api/doctors/by-hospital/${hospitalId}`, { params }),
-  getAvailability: (id, date) =>
-    api.get(`/api/doctors/${id}/availability`, { params: { date } }),
-  createProfile: (profileData) => api.post("/api/doctors", profileData),
-  quickSetup: (data) => api.post("/api/doctors/quick-setup", data),
-  updateProfile: (id, profileData) =>
-    api.put(`/api/doctors/${id}`, profileData),
-  updateAvailability: (id, availability) =>
-    api.put(`/api/doctors/${id}/availability`, { availability })
-};
-
-export const diagnosesAPI = {
-  getAll: (params) => api.get("/api/diagnoses", { params }),
-  getById: (id) => api.get(`/api/diagnoses/${id}`),
-  create: (diagnosisData) => api.post("/api/diagnoses", diagnosisData),
-  update: (id, diagnosisData) => api.put(`/api/diagnoses/${id}`, diagnosisData),
-  addVoiceRecording: (id, recordingData) =>
-    api.post(`/api/diagnoses/${id}/voice-recording`, recordingData)
-};
-
-export const remindersAPI = {
-  getAll: (params) => api.get("/api/reminders", { params }),
-  getById: (id) => api.get(`/api/reminders/${id}`),
-  getToday: () => api.get("/api/reminders/today"),
-  create: (reminderData) => api.post("/api/reminders", reminderData),
-  update: (id, reminderData) => api.put(`/api/reminders/${id}`, reminderData),
-  updateStatus: (id, status) =>
-    api.put(`/api/reminders/${id}/status`, { status }),
-  markTaken: (id, data) => api.post(`/api/reminders/${id}/mark-taken`, data),
-  markSkipped: (id, data) =>
-    api.post(`/api/reminders/${id}/mark-skipped`, data),
-  delete: (id) => api.delete(`/api/reminders/${id}`)
-};
-
-export const medicinesAPI = {
-  getAll: (params) => api.get("/api/medicines", { params }),
-  getById: (id) => api.get(`/api/medicines/${id}`),
-  getCategories: () => api.get("/api/medicines/categories"),
-  getLowStock: () => api.get("/api/medicines/low-stock"),
-  create: (medicineData) => api.post("/api/medicines", medicineData),
-  update: (id, medicineData) => api.put(`/api/medicines/${id}`, medicineData),
-  delete: (id) => api.delete(`/api/medicines/${id}`)
-};
-
-export const patientsAPI = {
-  getAll: (params) => api.get("/api/patients", { params }),
-  getById: (id) => api.get(`/api/patients/${id}`),
-  getAppointments: (id, params) =>
-    api.get(`/api/patients/${id}/appointments`, { params }),
-  getDiagnoses: (id, params) =>
-    api.get(`/api/patients/${id}/diagnoses`, { params }),
-  getReminders: (id, params) =>
-    api.get(`/api/patients/${id}/reminders`, { params }),
-  getStats: (id) => api.get(`/api/patients/${id}/stats`),
-  update: (id, profileData) =>
-    api.put(`/api/patients/${id}`, { profile: profileData })
+  getDoctors: (params) => api.get("/api/doctors", { params }),
+  getDoctorById: (id) => api.get(`/api/doctors/${id}`),
+  getByHospital: (hospitalId) =>
+    api.get(`/api/doctors/by-hospital/${hospitalId}`),
+  getAvailability: (doctorId, date) =>
+    api.get(`/api/doctors/${doctorId}/availability`, { params: { date } }),
+  updateDoctor: (id, doctorData) => api.put(`/api/doctors/${id}`, doctorData),
+  deleteDoctor: (id) => api.delete(`/api/doctors/${id}`),
+  approveDoctor: (id, approvalData) =>
+    api.put(`/api/doctors/${id}/approve`, approvalData)
 };
 
 export const hospitalsAPI = {
   getAll: (params) => api.get("/api/hospitals", { params }),
-  getById: (id) => api.get(`/api/hospitals/${id}`),
-  create: (hospitalData) => api.post("/api/hospitals", hospitalData),
-  update: (id, hospitalData) => api.put(`/api/hospitals/${id}`, hospitalData),
-  delete: (id) => api.delete(`/api/hospitals/${id}`),
-  getMyHospitals: () => api.get("/api/hospitals/my-hospitals"),
-  getPendingApprovals: () => api.get("/api/hospitals/pending/approvals"),
-  approve: (id, approvalData) =>
-    api.put(`/api/hospitals/${id}/approve`, approvalData)
+  getHospitals: (params) => api.get("/api/hospitals", { params }),
+  getHospitalById: (id) => api.get(`/api/hospitals/${id}`),
+  createHospital: (hospitalData) => api.post("/api/hospitals", hospitalData),
+  updateHospital: (id, hospitalData) =>
+    api.put(`/api/hospitals/${id}`, hospitalData),
+  deleteHospital: (id) => api.delete(`/api/hospitals/${id}`)
+};
+
+export const appointmentsAPI = {
+  // Main appointments endpoint - works for all user types
+  getAll: (params) => api.get("/api/appointments", { params }),
+  getAppointments: (params) => api.get("/api/appointments", { params }),
+  getAppointmentById: (id) => api.get(`/api/appointments/${id}`),
+  create: (appointmentData) => api.post("/api/appointments", appointmentData),
+  createAppointment: (appointmentData) =>
+    api.post("/api/appointments", appointmentData),
+  update: (id, appointmentData) =>
+    api.put(`/api/appointments/${id}`, appointmentData),
+  updateAppointment: (id, appointmentData) =>
+    api.put(`/api/appointments/${id}`, appointmentData),
+  delete: (id) => api.delete(`/api/appointments/${id}`),
+  deleteAppointment: (id) => api.delete(`/api/appointments/${id}`),
+  cancel: (id) => api.delete(`/api/appointments/${id}`),
+  getPatientAppointments: (params) =>
+    api.get("/api/appointments/patient", { params }),
+  getDoctorAppointments: (params) =>
+    api.get("/api/appointments/doctor", { params }),
+  updateStatus: (id, status) =>
+    api.put(`/api/appointments/${id}/status`, { status }),
+  updateAppointmentStatus: (id, status) =>
+    api.put(`/api/appointments/${id}/status`, { status }),
+  updateSessionPhase: (id, phase) =>
+    api.put(`/api/appointments/${id}/session-phase`, { phase }),
+  moveUp: (id) => api.put(`/api/appointments/${id}/move-up`),
+  moveDown: (id) => api.put(`/api/appointments/${id}/move-down`),
+  getQueuePosition: (doctorId, date) =>
+    api.get(`/api/appointments/queue/${doctorId}/${date}`)
+};
+
+export const diagnosesAPI = {
+  getDiagnoses: (params) => api.get("/api/diagnoses", { params }),
+  getAll: (params) => api.get("/api/diagnoses", { params }), // Alias for backward compatibility
+  getDiagnosisById: (id) => api.get(`/api/diagnoses/${id}`),
+  createDiagnosis: (diagnosisData) => api.post("/api/diagnoses", diagnosisData),
+  create: (diagnosisData) => api.post("/api/diagnoses", diagnosisData), // Alias for backward compatibility
+  updateDiagnosis: (id, diagnosisData) =>
+    api.put(`/api/diagnoses/${id}`, diagnosisData),
+  deleteDiagnosis: (id) => api.delete(`/api/diagnoses/${id}`)
+};
+
+export const medicinesAPI = {
+  getMedicines: (params) => api.get("/api/medicines", { params }),
+  getMedicineById: (id) => api.get(`/api/medicines/${id}`),
+  createMedicine: (medicineData) => api.post("/api/medicines", medicineData),
+  updateMedicine: (id, medicineData) =>
+    api.put(`/api/medicines/${id}`, medicineData),
+  deleteMedicine: (id) => api.delete(`/api/medicines/${id}`)
+};
+
+export const remindersAPI = {
+  getReminders: (params) => api.get("/api/reminders", { params }),
+  getReminderById: (id) => api.get(`/api/reminders/${id}`),
+  createReminder: (reminderData) => api.post("/api/reminders", reminderData),
+  updateReminder: (id, reminderData) =>
+    api.put(`/api/reminders/${id}`, reminderData),
+  deleteReminder: (id) => api.delete(`/api/reminders/${id}`)
 };
 
 export const adminAPI = {
-  getDashboard: () => api.get("/api/admin/dashboard"),
-  getPendingUsers: () => api.get("/api/admin/pending-users"),
-  approveUser: (id, approvalData) =>
-    api.put(`/api/admin/users/${id}/approve`, approvalData),
-  getPendingDoctors: () => api.get("/api/admin/pending-doctors"),
+  // Doctor management endpoints
+  getPendingDoctors: () => api.get("/api/admin/doctors/pending"),
   approveDoctor: (id, approvalData) =>
     api.put(`/api/admin/doctors/${id}/approve`, approvalData),
   getUsers: (params) => api.get("/api/admin/users", { params }),
@@ -172,10 +171,7 @@ export const adminAPI = {
   suspendDoctor: (id, suspensionData) =>
     api.post(`/api/admin/doctors/${id}/suspend`, suspensionData),
   unsuspendDoctor: (id) => api.post(`/api/admin/doctors/${id}/unsuspend`),
-  getSuspendedDoctors: () => api.get("/api/admin/doctors/suspended"),
-
-  // Doctor approval endpoints
-  approveDoctor: (id) => api.post(`/api/admin/doctors/${id}/approve`)
+  getSuspendedDoctors: () => api.get("/api/admin/doctors/suspended")
 };
 
 export const prescriptionsAPI = {
@@ -189,7 +185,24 @@ export const prescriptionsAPI = {
   updatePrescription: (id, prescriptionData) =>
     api.put(`/api/prescriptions/${id}`, prescriptionData),
   deletePrescription: (id) => api.delete(`/api/prescriptions/${id}`),
-  getDoctorStats: () => api.get("/api/prescriptions/stats/doctor")
+  getDoctorStats: () => api.get("/api/prescriptions/stats/doctor"),
+  // Appointment-related endpoints
+  getAppointmentPrescriptions: (appointmentId) =>
+    api.get(`/api/prescriptions/appointment/${appointmentId}`),
+  createPrescriptionForAppointment: (appointmentId, prescriptionData) =>
+    api.post(
+      `/api/prescriptions/appointment/${appointmentId}`,
+      prescriptionData
+    ),
+  updatePrescriptionForAppointment: (
+    appointmentId,
+    prescriptionId,
+    prescriptionData
+  ) =>
+    api.put(
+      `/api/prescriptions/appointment/${appointmentId}/${prescriptionId}`,
+      prescriptionData
+    )
 };
 
 export const healthHistoryAPI = {
@@ -247,5 +260,31 @@ export const uploadsAPI = {
     api.get(`/api/uploads/signed-url/${filePath}`, { params: { expires } }),
 
   // Check GCS connectivity (admin only)
-  healthCheck: () => api.get("/api/uploads/health-check")
+  checkConnectivity: () => api.get("/api/uploads/check-connectivity")
+};
+
+export const chatbotAPI = {
+  // Chat with AI assistant
+  chat: (data) => api.post("/api/chatbot/chat", data),
+
+  // Search medical information
+  search: (data) => api.post("/api/chatbot/search", data),
+
+  // Check drug interactions
+  checkDrugInteractions: (medications) =>
+    api.post("/api/chatbot/drug-interactions", { medications }),
+
+  // Suggest diagnostic tests
+  suggestDiagnosticTests: (symptoms, suspectedConditions = []) =>
+    api.post("/api/chatbot/diagnostic-tests", {
+      symptoms,
+      suspectedConditions
+    }),
+
+  // Get treatment protocol
+  getTreatmentProtocol: (condition, severity = "moderate") =>
+    api.post("/api/chatbot/treatment-protocol", { condition, severity }),
+
+  // Get quick medical facts
+  getQuickFacts: (topic) => api.get(`/api/chatbot/quick-facts/${topic}`)
 };

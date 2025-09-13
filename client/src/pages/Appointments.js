@@ -52,14 +52,26 @@ const Appointments = () => {
   } = useForm();
 
   // Fetch appointments
-  const { data: appointmentsData, isLoading: appointmentsLoading } = useQuery({
+  const {
+    data: appointmentsData,
+    isLoading: appointmentsLoading,
+    error: appointmentsError
+  } = useQuery({
     queryKey: ["appointments", filterStatus],
     queryFn: () =>
       appointmentsAPI.getAll({
         status: filterStatus !== "all" ? filterStatus : undefined
       }),
-    refetchInterval: 30000 // Refetch every 30 seconds
+    refetchInterval: 30000, // Refetch every 30 seconds
+    onError: (error) => {
+      console.error("Failed to fetch appointments:", error);
+    }
   });
+
+  // Debug logging
+  console.log("Appointments data:", appointmentsData);
+  console.log("Appointments loading:", appointmentsLoading);
+  console.log("Appointments error:", appointmentsError);
 
   // Fetch hospitals
   const { data: hospitalsData, isLoading: hospitalsLoading } = useQuery({
@@ -390,7 +402,8 @@ const Appointments = () => {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
             <p className="mt-2 text-gray-600">Loading appointments...</p>
           </div>
-        ) : appointmentsData?.appointments?.length === 0 ? (
+        ) : !appointmentsData?.appointments ||
+          appointmentsData.appointments.length === 0 ? (
           <div className="p-6 text-center">
             <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600">No appointments found</p>
@@ -408,7 +421,7 @@ const Appointments = () => {
               </p>
             </div>
             <KanbanBoard
-              appointments={appointmentsData.appointments}
+              appointments={appointmentsData?.appointments || []}
               onViewDetails={handleViewAppointment}
               onStatusChange={handleStatusChange}
             />

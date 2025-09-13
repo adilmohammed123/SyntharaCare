@@ -3,17 +3,39 @@ const path = require("path");
 
 class GCSService {
   constructor() {
-    // Validate required environment variables
-    if (!process.env.GCS_PROJECT_ID) {
-      throw new Error("GCS_PROJECT_ID environment variable is required");
-    }
-    if (!process.env.GCS_BUCKET_NAME) {
-      throw new Error("GCS_BUCKET_NAME environment variable is required");
-    }
-    if (!process.env.GCS_CREDENTIALS) {
-      throw new Error("GCS_CREDENTIALS environment variable is required");
-    }
+    // Check if we're in development mode and GCS is not configured
+    this.isDevelopment = process.env.NODE_ENV === "development";
+    this.isConfigured = false;
 
+    // Only initialize GCS if credentials are available
+    if (
+      process.env.GCS_PROJECT_ID &&
+      process.env.GCS_BUCKET_NAME &&
+      process.env.GCS_CREDENTIALS
+    ) {
+      try {
+        this.initializeGCS();
+        this.isConfigured = true;
+      } catch (error) {
+        if (this.isDevelopment) {
+          console.warn("GCS not configured for development:", error.message);
+          console.warn("File uploads will be disabled in development mode");
+        } else {
+          throw error;
+        }
+      }
+    } else if (this.isDevelopment) {
+      console.warn(
+        "GCS environment variables not set. File uploads will be disabled in development mode"
+      );
+    } else {
+      throw new Error(
+        "GCS_PROJECT_ID, GCS_BUCKET_NAME, and GCS_CREDENTIALS environment variables are required"
+      );
+    }
+  }
+
+  initializeGCS() {
     // Parse credentials - handle both file path and direct JSON
     let credentials;
     try {
@@ -55,6 +77,27 @@ class GCSService {
    * @returns {Promise<Object>} Upload result with public URL
    */
   async uploadFile(fileBuffer, fileName, folder = "uploads", metadata = {}) {
+    // Check if GCS is configured
+    if (!this.isConfigured) {
+      if (this.isDevelopment) {
+        // Return a mock response for development
+        return {
+          id: `dev-${Date.now()}-${Math.round(Math.random() * 1e9)}`,
+          originalName: fileName,
+          fileName: fileName,
+          filePath: `${folder}/${fileName}`,
+          publicUrl: `http://localhost:8080/dev-uploads/${folder}/${fileName}`,
+          size: fileBuffer.length,
+          mimeType: metadata.mimeType || "application/octet-stream",
+          uploadedAt: new Date().toISOString()
+        };
+      } else {
+        throw new Error(
+          "GCS is not configured. Please set up GCS credentials."
+        );
+      }
+    }
+
     try {
       // Generate unique filename
       const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
@@ -114,6 +157,18 @@ class GCSService {
    * @returns {Promise<boolean>} Success status
    */
   async deleteFile(filePath) {
+    // Check if GCS is configured
+    if (!this.isConfigured) {
+      if (this.isDevelopment) {
+        console.log(`Development mode: Would delete file ${filePath}`);
+        return true;
+      } else {
+        throw new Error(
+          "GCS is not configured. Please set up GCS credentials."
+        );
+      }
+    }
+
     try {
       const file = this.bucket.file(filePath);
       await file.delete();
@@ -130,6 +185,23 @@ class GCSService {
    * @returns {Promise<Object>} File metadata
    */
   async getFileMetadata(filePath) {
+    // Check if GCS is configured
+    if (!this.isConfigured) {
+      if (this.isDevelopment) {
+        return {
+          name: filePath,
+          size: 0,
+          contentType: "application/octet-stream",
+          timeCreated: new Date().toISOString(),
+          updated: new Date().toISOString()
+        };
+      } else {
+        throw new Error(
+          "GCS is not configured. Please set up GCS credentials."
+        );
+      }
+    }
+
     try {
       const file = this.bucket.file(filePath);
       const [metadata] = await file.getMetadata();
@@ -147,6 +219,17 @@ class GCSService {
    * @returns {Promise<string>} Signed URL
    */
   async getSignedUrl(filePath, expirationMinutes = 60) {
+    // Check if GCS is configured
+    if (!this.isConfigured) {
+      if (this.isDevelopment) {
+        return `http://localhost:8080/dev-uploads/${filePath}`;
+      } else {
+        throw new Error(
+          "GCS is not configured. Please set up GCS credentials."
+        );
+      }
+    }
+
     try {
       const file = this.bucket.file(filePath);
       const [signedUrl] = await file.getSignedUrl({
@@ -165,6 +248,16 @@ class GCSService {
    * @returns {Promise<boolean>} Bucket accessibility status
    */
   async checkBucketAccess() {
+    // Check if GCS is configured
+    if (!this.isConfigured) {
+      if (this.isDevelopment) {
+        console.log("Development mode: GCS bucket access check skipped");
+        return true;
+      } else {
+        return false;
+      }
+    }
+
     try {
       const [exists] = await this.bucket.exists();
       return exists;

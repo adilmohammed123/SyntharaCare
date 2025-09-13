@@ -57,6 +57,7 @@ app.use("/api/reminders", require("./routes/reminders"));
 app.use("/api/prescriptions", require("./routes/prescriptions"));
 app.use("/api/health-history", require("./routes/healthHistory"));
 app.use("/api/uploads", require("./routes/uploads"));
+app.use("/api/chatbot", require("./routes/chatbot"));
 
 // Serve uploaded files
 app.use("/uploads", express.static("uploads"));

@@ -38,15 +38,27 @@ const Diagnoses = () => {
   } = useForm();
 
   // Fetch diagnoses
-  const { data: diagnosesData, isLoading: diagnosesLoading } = useQuery({
+  const {
+    data: diagnosesData,
+    isLoading: diagnosesLoading,
+    error: diagnosesError
+  } = useQuery({
     queryKey: ["diagnoses", searchTerm, filterSeverity],
     queryFn: () =>
-      diagnosesAPI.getAll({
+      diagnosesAPI.getDiagnoses({
         search: searchTerm || undefined,
         severity: filterSeverity !== "all" ? filterSeverity : undefined
       }),
-    refetchInterval: 60000
+    refetchInterval: 60000,
+    onError: (error) => {
+      console.error("Failed to fetch diagnoses:", error);
+    }
   });
+
+  // Debug logging
+  console.log("Diagnoses data:", diagnosesData);
+  console.log("Diagnoses loading:", diagnosesLoading);
+  console.log("Diagnoses error:", diagnosesError);
 
   // Fetch appointments for creating diagnoses
   const { data: appointmentsData } = useQuery({
@@ -57,7 +69,7 @@ const Diagnoses = () => {
 
   // Mutations
   const createDiagnosisMutation = useMutation({
-    mutationFn: (data) => diagnosesAPI.create(data),
+    mutationFn: (data) => diagnosesAPI.createDiagnosis(data),
     onSuccess: () => {
       toast.success("Diagnosis created successfully!");
       setShowCreateModal(false);

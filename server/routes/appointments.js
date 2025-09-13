@@ -148,8 +148,18 @@ router.get("/", auth, async (req, res) => {
 
     let query = {};
     if (req.user.role === "patient") {
+      // Validate that req.user._id is a valid ObjectId
+      if (!mongoose.Types.ObjectId.isValid(req.user._id)) {
+        console.error("Invalid user ID:", req.user._id);
+        return res.status(400).json({ message: "Invalid user ID format" });
+      }
       query.patientId = req.user._id;
     } else if (req.user.role === "doctor") {
+      // Validate that req.user._id is a valid ObjectId
+      if (!mongoose.Types.ObjectId.isValid(req.user._id)) {
+        console.error("Invalid user ID:", req.user._id);
+        return res.status(400).json({ message: "Invalid user ID format" });
+      }
       const doctor = await Doctor.findOne({ userId: req.user._id });
       if (doctor) {
         query.doctorId = doctor._id;
@@ -223,11 +233,128 @@ router.get("/", auth, async (req, res) => {
   }
 });
 
+// @route   GET /api/appointments/patient
+// @desc    Get appointments for current patient
+// @access  Private (Patients, Doctors, Admins)
+router.get(
+  "/patient",
+  auth,
+  authorize("patient", "doctor", "admin"),
+  async (req, res) => {
+    try {
+      const { page = 1, limit = 10, status, date } = req.query;
+
+      let query = {};
+
+      // Handle different roles
+      if (req.user.role === "patient") {
+        query.patientId = req.user._id;
+      } else if (req.user.role === "doctor") {
+        // For doctors, get appointments for their patients
+        const doctor = await Doctor.findOne({ userId: req.user._id });
+        if (doctor) {
+          query.doctorId = doctor._id;
+        } else {
+          return res.status(404).json({ message: "Doctor profile not found" });
+        }
+      } else if (req.user.role === "admin") {
+        // Admins can see all appointments
+        // No additional query filters needed
+      }
+
+      if (status) {
+        query.status = status;
+      }
+      if (date) {
+        const startDate = new Date(date);
+        const endDate = new Date(date);
+        endDate.setDate(endDate.getDate() + 1);
+        query.date = { $gte: startDate, $lt: endDate };
+      }
+
+      const appointments = await Appointment.find(query)
+        .populate("patientId", "profile.firstName profile.lastName email")
+        .populate("doctorId", "userId specialization")
+        .populate("doctorId.userId", "profile.firstName profile.lastName")
+        .populate("hospitalId", "name")
+        .limit(limit * 1)
+        .skip((page - 1) * limit)
+        .sort({ date: 1, time: 1 });
+
+      const total = await Appointment.countDocuments(query);
+
+      res.json({
+        appointments,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+        total
+      });
+    } catch (error) {
+      console.error("Get patient appointments error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+);
+
+// @route   GET /api/appointments/doctor
+// @desc    Get appointments for current doctor
+// @access  Private (Doctors)
+router.get("/doctor", auth, authorize("doctor"), async (req, res) => {
+  try {
+    const { page = 1, limit = 10, status, date } = req.query;
+
+    // Find the doctor record for this user
+    const doctor = await Doctor.findOne({ userId: req.user._id });
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor profile not found" });
+    }
+
+    let query = { doctorId: doctor._id };
+
+    if (status) {
+      query.status = status;
+    }
+    if (date) {
+      const startDate = new Date(date);
+      const endDate = new Date(date);
+      endDate.setDate(endDate.getDate() + 1);
+      query.date = { $gte: startDate, $lt: endDate };
+    }
+
+    const appointments = await Appointment.find(query)
+      .populate("patientId", "profile.firstName profile.lastName email")
+      .populate("doctorId", "userId specialization")
+      .populate("doctorId.userId", "profile.firstName profile.lastName")
+      .populate("hospitalId", "name")
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .sort({ date: 1, time: 1 });
+
+    const total = await Appointment.countDocuments(query);
+
+    res.json({
+      appointments,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page,
+      total
+    });
+  } catch (error) {
+    console.error("Get doctor appointments error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 // @route   GET /api/appointments/:id
 // @desc    Get appointment by ID
 // @access  Private
 router.get("/:id", auth, async (req, res) => {
   try {
+    // Validate that the appointment ID is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      console.error("Invalid appointment ID:", req.params.id);
+      return res.status(400).json({ message: "Invalid appointment ID format" });
+    }
+
     const appointment = await Appointment.findById(req.params.id)
       .populate("patientId", "profile.firstName profile.lastName email")
       .populate("doctorId", "userId specialization")
