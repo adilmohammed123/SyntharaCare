@@ -10,7 +10,7 @@ env:
   PROJECT_ID: syntharacare
   SERVICE_NAME: syntharacare-api
   REGION: us-central1
-  IMAGE_NAME: gcr.io/${{ env.PROJECT_ID }}/${{ env.SERVICE_NAME }}
+  IMAGE_NAME: gcr.io/syntharacare/syntharacare-api
 
 jobs:
   deploy:
