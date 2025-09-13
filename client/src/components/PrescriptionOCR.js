@@ -32,9 +32,9 @@ const PrescriptionOCR = ({ onTextExtracted, onClose }) => {
 
       const response = await uploadsAPI.uploadSingle(formData);
 
-      setUploadedFile(response.data.file);
+      setUploadedFile(response.file);
       toast.success("Image uploaded successfully!");
-      return response.data.file;
+      return response.file;
     } catch (err) {
       const errorMessage =
         err.response?.data?.message || "Failed to upload image";
@@ -268,6 +268,31 @@ const PrescriptionOCR = ({ onTextExtracted, onClose }) => {
                 Image saved for reference. Please enter prescription details
                 manually above.
               </p>
+              {/* Image Preview */}
+              {uploadedFile.publicUrl && (
+                <div className="mt-3">
+                  <img
+                    src={uploadedFile.publicUrl}
+                    alt="Uploaded prescription"
+                    className="max-w-full h-auto max-h-48 rounded-lg border border-gray-200 shadow-sm"
+                    onError={(e) => {
+                      e.target.style.display = "none";
+                      e.target.nextSibling.style.display = "block";
+                    }}
+                  />
+                  <div className="hidden text-sm text-gray-500 mt-2">
+                    Image failed to load. You can access it directly:
+                    <a
+                      href={uploadedFile.publicUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 ml-1"
+                    >
+                      View Image
+                    </a>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

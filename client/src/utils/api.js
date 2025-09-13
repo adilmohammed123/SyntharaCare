@@ -3,7 +3,7 @@ import axios from "axios";
 const API_BASE_URL =
   process.env.REACT_APP_API_BASE_URL ||
   (process.env.NODE_ENV === "production"
-    ? "https://syntharacare-1.onrender.com" // Default production URL
+    ? "https://syntharacare-api-205506659521.us-central1.run.app" // Cloud Run production URL
     : "http://localhost:5000"); // Development URL
 
 export const api = axios.create({

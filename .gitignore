@@ -119,3 +119,7 @@ Thumbs.db
 /server/uploads/
 /uploads/
 /server/config
+
+deploy-cloud-run.sh
+/client/build
+/client/node_modules

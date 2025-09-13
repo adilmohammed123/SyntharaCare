@@ -142,7 +142,7 @@ const PrescriptionScanner = () => {
                 <h4 className="text-sm font-medium text-green-800 mb-2">
                   📁 Reference Image
                 </h4>
-                <div className="text-sm text-green-700">
+                <div className="text-sm text-green-700 mb-3">
                   <p>
                     <strong>File:</strong> {uploadedFile.originalName}
                   </p>
@@ -158,6 +158,31 @@ const PrescriptionScanner = () => {
                     {new Date(uploadedFile.uploadedAt).toLocaleString()}
                   </p>
                 </div>
+                {/* Image Preview */}
+                {uploadedFile.publicUrl && (
+                  <div className="mt-3">
+                    <img
+                      src={uploadedFile.publicUrl}
+                      alt="Prescription"
+                      className="max-w-full h-auto max-h-64 rounded-lg border border-gray-200 shadow-sm"
+                      onError={(e) => {
+                        e.target.style.display = "none";
+                        e.target.nextSibling.style.display = "block";
+                      }}
+                    />
+                    <div className="hidden text-sm text-gray-500 mt-2">
+                      Image failed to load. You can access it directly:
+                      <a
+                        href={uploadedFile.publicUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 ml-1"
+                      >
+                        View Image
+                      </a>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

@@ -37,6 +37,23 @@ gcloud services enable containerregistry.googleapis.com
 echo "🏗️ Building and pushing Docker image..."
 gcloud builds submit --tag $IMAGE_NAME
 
+
+# Create custom service account if it doesn't exist
+echo "🔐 Setting up service account..."
+gcloud iam service-accounts create syntharacare-run \
+    --display-name="SyntharaCare Cloud Run Service Account" \
+    --description="Service account for SyntharaCare Cloud Run deployment" 2>/dev/null || echo "Service account already exists"
+
+# Grant necessary permissions
+echo "🔑 Granting permissions..."
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member="serviceAccount:syntharacare-run@$PROJECT_ID.iam.gserviceaccount.com" \
+    --role="roles/secretmanager.secretAccessor" 2>/dev/null || echo "Secret accessor role already granted"
+
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member="serviceAccount:syntharacare-run@$PROJECT_ID.iam.gserviceaccount.com" \
+    --role="roles/storage.objectAdmin" 2>/dev/null || echo "Storage admin role already granted"
+
 # Deploy to Cloud Run
 echo "🚀 Deploying to Cloud Run..."
 gcloud run deploy $SERVICE_NAME \
@@ -48,6 +65,7 @@ gcloud run deploy $SERVICE_NAME \
     --memory 1Gi \
     --cpu 1 \
     --max-instances 10 \
+    --service-account syntharacare-run@$PROJECT_ID.iam.gserviceaccount.com \
     --set-env-vars NODE_ENV=production \
     --set-secrets GCS_CREDENTIALS=GCS_CREDENTIALS:latest \
     --set-env-vars GCS_PROJECT_ID=$PROJECT_ID \
