@@ -3,18 +3,29 @@ const path = require("path");
 
 class GCSService {
   constructor() {
-    // Initialize GCS client
-    // You can either use service account key file or environment variables
-    this.storage = new Storage({
-      // Option 1: Use service account key file (recommended for development)
-      keyFilename: path.join(__dirname, "../config/gcs-key.json"),
-      projectId: process.env.GCS_PROJECT_ID
+    // Validate required environment variables
+    if (!process.env.GCS_PROJECT_ID) {
+      throw new Error("GCS_PROJECT_ID environment variable is required");
+    }
+    if (!process.env.GCS_BUCKET_NAME) {
+      throw new Error("GCS_BUCKET_NAME environment variable is required");
+    }
+    if (!process.env.GCS_CREDENTIALS) {
+      throw new Error("GCS_CREDENTIALS environment variable is required");
+    }
 
-      // Option 2: Use environment variables (recommended for production)
-      // projectId: process.env.GCS_PROJECT_ID,
-      // credentials: process.env.GCS_CREDENTIALS
-      //   ? JSON.parse(process.env.GCS_CREDENTIALS)
-      //   : undefined
+    // Parse credentials
+    let credentials;
+    try {
+      credentials = JSON.parse(process.env.GCS_CREDENTIALS);
+    } catch (error) {
+      throw new Error("GCS_CREDENTIALS must be valid JSON: " + error.message);
+    }
+
+    // Initialize GCS client
+    this.storage = new Storage({
+      projectId: process.env.GCS_PROJECT_ID,
+      credentials: credentials
     });
 
     // Get your bucket name from environment variable
