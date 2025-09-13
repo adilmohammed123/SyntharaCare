@@ -34,7 +34,7 @@ jobs:
 
       - name: Build client
         run: |
-          cd client && npm run build
+          cd client && CI=false npm run build
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
